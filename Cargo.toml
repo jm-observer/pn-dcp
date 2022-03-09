@@ -11,6 +11,7 @@ pnet_macros = "0.29.0"
 pnet_macros_support = "0.29.0"
 
 [dev-dependencies]
-syn = { version = "1.0.86", features = ["full", "visit"] }
-proc-macro2 = "1.0.36"
-quote = "1.0"
+anyhow = "1.0.51"
+pnet = "0.29.0"
+pnet_macros = "0.29.0"
+pnet_macros_support = "0.29.0"
