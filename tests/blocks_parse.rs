@@ -16,4 +16,37 @@ fn test() {
     let blocks_data = get_blocks(data.as_slice()).unwrap();
     let blocks = Blocks::new(blocks_data);
     println!("{:?}", blocks);
+
+    let data = get_ident_resp();
+    let blocks_data = get_blocks(data.as_slice()).unwrap();
+    let blocks = Blocks::new(blocks_data);
+    println!("{:?}", blocks);
+
+    // let data = get_get_req();
+    // let blocks_data = get_blocks(data.as_slice()).unwrap();
+    // let blocks = Blocks::new(blocks_data);
+    // println!("{:?}", blocks);
+
+    let data = get_get_resp();
+    let blocks_data = get_blocks(data.as_slice()).unwrap();
+    let blocks = Blocks::new(blocks_data);
+    println!("{:?}", blocks);
+
+    let data = get_set_req();
+    let blocks_data = get_blocks(data.as_slice()).unwrap();
+    let blocks = Blocks::new(blocks_data);
+    println!("{:?}", blocks);
+
+    let data = get_set_resp();
+    let blocks_data = get_blocks(data.as_slice()).unwrap();
+    let blocks = Blocks::new(blocks_data);
+    println!("{:?}", blocks);
+}
+
+#[test]
+fn test_get_req() {
+    let data = get_get_req();
+    let blocks_data = get_blocks(data.as_slice()).unwrap();
+    let blocks = Blocks::new(blocks_data);
+    println!("{:?}", blocks);
 }

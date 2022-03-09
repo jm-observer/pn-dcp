@@ -5,10 +5,10 @@ use pnet_macros_support::types::u16be;
 pub struct Block {
     pub option: u8,
     pub sub_option: u8,
-    pub len: u16be,
+    pub block_len: u16be,
     pub status: u16be,
     #[payload]
-    #[length = "len - 2"]
+    #[length = "block_len - 2"]
     pub data: Vec<u8>,
 }
 
@@ -22,9 +22,10 @@ pub struct Blocks<'a>(Vec<BlockComm<'a>>);
 
 impl<'a> Blocks<'a> {
     pub fn new(mut data: &'a [u8]) -> Self {
+        println!("{:?}", data);
         let mut blocks: Vec<BlockComm<'a>> = Vec::new();
         while let Some(block) = BlockPacket::new(data) {
-            if block.get_len() == 0 {
+            if block.get_block_len() == 0 {
                 break;
             }
             let mut len = block.packet_size();
