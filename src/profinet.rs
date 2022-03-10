@@ -1,6 +1,52 @@
+use crate::block::{Blocks, OptionSuboptions};
+use crate::consts::*;
+use anyhow::bail;
+use pnet::packet::ethernet::EthernetPacket;
 use pnet_macros::packet;
 use pnet_macros_support::packet::PrimitiveValues;
 use pnet_macros_support::types::{u16be, u32be};
+
+pub enum DcpPacket<'a> {
+    IdentReq(DcpCommPacket<'a>),
+    IdentResp(DcpCommPacket<'a>),
+    GetReq(DcpGetReq<'a>),
+    GetResp(DcpCommPacket<'a>),
+    SetReq(DcpCommPacket<'a>),
+    SetResp(DcpCommPacket<'a>),
+}
+
+impl<'a> TryFrom<EthernetPacket<'a>> for DcpPacket<'a> {
+    type Error = anyhow::Error;
+
+    fn try_from(value: EthernetPacket<'a>) -> Result<Self, Self::Error> {
+        if packet.get_ethertype() != PROFINET_ETHER_TYPE {}
+        let payload = value.payload();
+        let profinet = ProfinetPacket::new(payload)?;
+
+        let frame_id: FrameId = profinet.get_frame_id();
+        if frame_id == FRAME_ID_DCP_HELLO {
+            bail!("not support hello packet yet")
+        } else if frame_id == FRAME_ID_DCP_GETORSET {
+        } else if frame_id == FRAME_ID_DCP_IDENT_REQ {
+        } else if frame_id == FRAME_ID_DCP_IDENT_RES {
+        } else {
+            bail!("unidentified packet")
+        }
+        todo!()
+    }
+}
+
+pub struct DcpCommPacket<'a> {
+    ethernet: EthernetPacket<'a>,
+    profinet: ProfinetPacket<'a>,
+    blocks: Blocks<'a>,
+}
+
+pub struct DcpGetReq<'a> {
+    ethernet: EthernetPacket<'a>,
+    profinet: ProfinetPacket<'a>,
+    blocks: OptionSuboptions,
+}
 
 #[packet]
 pub struct Profinet {
