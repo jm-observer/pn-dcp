@@ -11,14 +11,14 @@ pub const FRAME_ID_DCP_GETORSET: FrameId = FrameId(0xfe, 0xfd);
 pub const FRAME_ID_DCP_IDENT_REQ: FrameId = FrameId(0xfe, 0xfe);
 pub const FRAME_ID_DCP_IDENT_RES: FrameId = FrameId(0xfe, 0xff);
 /// ServiceID 1 byte
-const SERVICE_ID_GET: u8 = 0x03;
-const SERVICE_ID_SET: u8 = 0x04;
-const SERVICE_ID_IDENTIFY: u8 = 0x05;
-const SERVICE_ID_HELLO: u8 = 0x06;
+pub const SERVICE_ID_GET: u8 = 0x03;
+pub const SERVICE_ID_SET: u8 = 0x04;
+pub const SERVICE_ID_IDENTIFY: u8 = 0x05;
+pub const SERVICE_ID_HELLO: u8 = 0x06;
 /// Service-Type
-const SERVICE_TYPE_REQUEST: u8 = 0x00;
-const SERVICE_TYPE_RESPONSE_SUCCESS: u8 = 0x01;
-const SERVICE_TYPE_RESPONSE_UNSUPPORTED: u8 = 0x05;
+pub const SERVICE_TYPE_REQUEST: u8 = 0x00;
+pub const SERVICE_TYPE_RESPONSE_SUCCESS: u8 = 0x01;
+pub const SERVICE_TYPE_RESPONSE_UNSUPPORTED: u8 = 0x05;
 
 // const O_MAC_ADDR: OptionSuboption = OptionSuboption(1, 1);
 // const O_IP_ADDR: OptionSuboption = OptionSuboption(1, 2);

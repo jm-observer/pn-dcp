@@ -1,6 +1,7 @@
 use pnet::packet::PacketSize;
 use pnet_macros::packet;
 use pnet_macros_support::types::u16be;
+use anyhow::Result;
 #[packet]
 pub struct Block {
     pub option: u8,
@@ -47,22 +48,28 @@ impl<'a> Blocks<'a> {
 // pub struct OptionSuboption(pub u8, pub u8);
 pub struct OptionSuboptions(Vec<OptionAndSub>);
 
+impl OptionSuboptions {
+    pub fn new(data: &[u8]) -> Result<Self> {
+        todo!()
+    }
+}
+
 pub enum OptionAndSub {
-    Mar_Addr,
-    Ip_Addr,
-    Full_Ip_Suite,
-    Manufacturer_Specific,
-    Name_Of_Station,
-    Device_Id,
+    MarAddr,
+    IpAddr,
+    FullIpSuite,
+    ManufacturerSpecific,
+    NameOfStation,
+    DeviceId,
     Device,
-    Device_Options,
-    Alias_Name,
-    Start_Transaction,
-    End_Transaction,
+    DeviceOptions,
+    AliasName,
+    StartTransaction,
+    EndTransaction,
     Signal,
     Response,
-    Reset_Factory,
-    Devicec_Initiative,
+    ResetFactory,
+    DevicecInitiative,
     All,
     DHCP(u8),
     LLDP(u8),
@@ -72,21 +79,21 @@ pub enum OptionAndSub {
 impl OptionAndSub {
     pub fn get(a: (u8, u8)) -> Self {
         match a {
-            (1, 1) => Self::Mar_Addr,
-            (1, 2) => Self::Ip_Addr,
-            (1, 3) => Self::Full_Ip_Suite,
-            (2, 1) => Self::Manufacturer_Specific,
-            (2, 2) => Self::Name_Of_Station,
-            (2, 3) => Self::Device_Id,
+            (1, 1) => Self::MarAddr,
+            (1, 2) => Self::IpAddr,
+            (1, 3) => Self::FullIpSuite,
+            (2, 1) => Self::ManufacturerSpecific,
+            (2, 2) => Self::NameOfStation,
+            (2, 3) => Self::DeviceId,
             (2, 4) => Self::Device,
-            (2, 5) => Self::Device_Options,
-            (2, 6) => Self::Alias_Name,
-            (5, 1) => Self::Start_Transaction,
-            (5, 2) => Self::End_Transaction,
+            (2, 5) => Self::DeviceOptions,
+            (2, 6) => Self::AliasName,
+            (5, 1) => Self::StartTransaction,
+            (5, 2) => Self::EndTransaction,
             (5, 3) => Self::Signal,
             (5, 4) => Self::Response,
-            (5, 6) => Self::Reset_Factory,
-            (6, 1) => Self::Devicec_Initiative,
+            (5, 6) => Self::ResetFactory,
+            (6, 1) => Self::DevicecInitiative,
             (255, 255) => Self::All,
             (3, a) => Self::DHCP(a),
             (4, a) => Self::LLDP(a),
@@ -95,21 +102,21 @@ impl OptionAndSub {
     }
     pub fn to_u8s(&self) -> (u8, u8) {
         match *self {
-            Self::Mar_Addr => (1, 1),
-            Self::Ip_Addr => (1, 2),
-            Self::Full_Ip_Suite => (1, 3),
-            Self::Manufacturer_Specific => (2, 1),
-            Self::Name_Of_Station => (2, 2),
-            Self::Device_Id => (2, 3),
+            Self::MarAddr => (1, 1),
+            Self::IpAddr => (1, 2),
+            Self::FullIpSuite => (1, 3),
+            Self::ManufacturerSpecific => (2, 1),
+            Self::NameOfStation => (2, 2),
+            Self::DeviceId => (2, 3),
             Self::Device => (2, 4),
-            Self::Device_Options => (2, 5),
-            Self::Alias_Name => (2, 6),
-            Self::Start_Transaction => (5, 1),
-            Self::End_Transaction => (5, 2),
+            Self::DeviceOptions => (2, 5),
+            Self::AliasName => (2, 6),
+            Self::StartTransaction => (5, 1),
+            Self::EndTransaction => (5, 2),
             Self::Signal => (5, 3),
             Self::Response => (5, 4),
-            Self::Reset_Factory => (5, 6),
-            Self::Devicec_Initiative => (6, 1),
+            Self::ResetFactory => (5, 6),
+            Self::DevicecInitiative => (6, 1),
             Self::All => (255, 255),
             Self::DHCP(a) => (3, a),
             Self::LLDP(a) => (4, a),

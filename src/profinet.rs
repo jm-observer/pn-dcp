@@ -1,8 +1,9 @@
 use crate::block::{Blocks, OptionSuboptions};
 use crate::consts::*;
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use pnet::packet::ethernet::EthernetPacket;
 use pnet_macros::packet;
+use pnet_macros_support::packet::Packet;
 use pnet_macros_support::packet::PrimitiveValues;
 use pnet_macros_support::types::{u16be, u32be};
 
@@ -14,25 +15,127 @@ pub enum DcpPacket<'a> {
     SetReq(DcpCommPacket<'a>),
     SetResp(DcpCommPacket<'a>),
 }
+impl<'a> DcpPacket<'a> {
+    pub fn is_set_req(&self) -> bool {
+        match self {
+            Self::SetReq(_) => {
+                true
+            }
+            _ => false
+        }
+    }
+    pub fn is_set_resp(&self) -> bool {
+        match self {
+            Self::SetResp(_) => {
+                true
+            }
+            _ => false
+        }
+    }
+    pub fn is_get_resp(&self) -> bool {
+        match self {
+            Self::GetResp(_) => {
+                true
+            }
+            _ => false
+        }
+    }
+    pub fn is_get_req(&self) -> bool {
+        match self {
+            Self::GetReq(_) => {
+                true
+            }
+            _ => false
+        }
+    }
+    pub fn is_ident_resp(&self) -> bool {
+        match self {
+            Self::IdentResp(_) => {
+                true
+            }
+            _ => false
+        }
+    }
+    pub fn is_ident_req(&self) -> bool {
+        match self {
+            Self::IdentReq(_) => {
+                true
+            }
+            _ => false
+        }
+    }
+}
 
-impl<'a> TryFrom<EthernetPacket<'a>> for DcpPacket<'a> {
+impl<'a> TryFrom<&'a [u8]> for DcpPacket<'a> {
     type Error = anyhow::Error;
 
-    fn try_from(value: EthernetPacket<'a>) -> Result<Self, Self::Error> {
-        if packet.get_ethertype() != PROFINET_ETHER_TYPE {}
-        let payload = value.payload();
-        let profinet = ProfinetPacket::new(payload)?;
-
+    fn try_from(data: &'a [u8]) -> Result<Self, Self::Error> {
+        let ethernet = EthernetPacket::<'a>::new(data).ok_or(anyhow!("not a ethernet packet"))?;
+        if ethernet.get_ethertype() != PROFINET_ETHER_TYPE {
+            bail!("");
+        }
+        let index = pnet_macros_support::packet::PacketSize::packet_size(&ethernet);
+        let payload = &data[index..];
+        let profinet = ProfinetPacket::new(payload).ok_or(anyhow!("not a profinet packet"))?;
         let frame_id: FrameId = profinet.get_frame_id();
+        let service_id: u8 = profinet.get_service_id();
+        let service_ty: u8 = profinet.get_service_type();
+
+        let index = pnet_macros_support::packet::PacketSize::packet_size(&profinet);
+        let payload = &payload[index..];
         if frame_id == FRAME_ID_DCP_HELLO {
             bail!("not support hello packet yet")
         } else if frame_id == FRAME_ID_DCP_GETORSET {
+            match (service_id, service_ty) {
+                (SERVICE_ID_GET, SERVICE_TYPE_REQUEST) => {
+                    let blocks = OptionSuboptions::new(payload)?;
+                    return Ok(Self::GetReq(DcpGetReq {
+                        ethernet, profinet, blocks
+                    }));
+                },
+                (SERVICE_ID_GET, SERVICE_TYPE_RESPONSE_SUCCESS) => {
+                    let blocks = Blocks::new(payload);
+                    return Ok(Self::GetResp(DcpCommPacket {
+                        ethernet, profinet, blocks
+                    }));
+                }(SERVICE_ID_SET, SERVICE_TYPE_REQUEST) => {
+                    let blocks = Blocks::new(payload);
+                    return Ok(Self::SetReq(DcpCommPacket {
+                        ethernet, profinet, blocks
+                    }));
+                }(SERVICE_ID_SET, SERVICE_TYPE_RESPONSE_SUCCESS) => {
+                    let blocks = Blocks::new(payload);
+                    return Ok(Self::SetResp(DcpCommPacket {
+                        ethernet, profinet, blocks
+                    }));
+                }
+                _ => {
+                    bail!("unidentified packet")
+                }
+            }
         } else if frame_id == FRAME_ID_DCP_IDENT_REQ {
+            if (service_id, service_ty) ==
+                (SERVICE_ID_IDENTIFY, SERVICE_TYPE_REQUEST)  {
+                let blocks = Blocks::new(payload);
+                return Ok(Self::IdentReq(DcpCommPacket {
+                    ethernet, profinet, blocks
+                }));
+            } else {
+                bail!("unidentified packet")
+            }
         } else if frame_id == FRAME_ID_DCP_IDENT_RES {
+            if (service_id, service_ty) ==
+                (SERVICE_ID_IDENTIFY, SERVICE_TYPE_RESPONSE_SUCCESS)  {
+                let blocks = Blocks::new(payload);
+                return Ok(Self::IdentResp(DcpCommPacket {
+                    ethernet, profinet, blocks
+                }));
+            } else {
+                bail!("unidentified packet")
+            }
         } else {
             bail!("unidentified packet")
         }
-        todo!()
     }
 }
 

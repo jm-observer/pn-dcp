@@ -9,6 +9,8 @@ edition = "2021"
 pnet = "0.29.0"
 pnet_macros = "0.29.0"
 pnet_macros_support = "0.29.0"
+anyhow = "1.0.51"
+
 
 [dev-dependencies]
 anyhow = "1.0.51"
