@@ -3,7 +3,7 @@
 use anyhow::{anyhow, Result};
 use pn_dcg_packet::comm::{u16_to_u8s, u32_to_u8s};
 use pn_dcg_packet::profinet::ProfinetPacket;
-use pnet::packet::ethernet::{EtherType, EthernetPacket};
+use pnet::packet::ethernet::EthernetPacket;
 use pnet::packet::Packet;
 
 pub fn get_ident_req() -> Vec<u8> {

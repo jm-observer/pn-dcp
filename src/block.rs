@@ -1,29 +1,60 @@
+use crate::comm::{copy_to_vec, group_copy_to_vec, slice_copy_to_vec, u16_to_u8s};
 use pnet::packet::PacketSize;
 use pnet_macros::packet;
+use pnet_macros_support::packet::PrimitiveValues;
 use pnet_macros_support::types::u16be;
-use anyhow::Result;
+use std::ops::Deref;
+
 #[packet]
 pub struct Block {
-    pub option: u8,
-    pub sub_option: u8,
+    #[construct_with(u8, u8)]
+    pub option_and_sub: OptionAndSub,
+    // pub option: u8,
+    // pub sub_option: u8,
     pub block_len: u16be,
-    pub status: u16be,
+    // pub status: u16be,
     #[payload]
-    #[length = "block_len - 2"]
+    #[length = "block_len"]
     pub data: Vec<u8>,
 }
 
 #[derive(Debug)]
 pub enum BlockComm<'a> {
-    Padding(u8),
+    Padding,
     Block(BlockPacket<'a>),
 }
+impl<'a> BlockComm<'a> {
+    pub fn is_block(&self) -> bool {
+        match self {
+            Self::Block(_) => true,
+            _ => false,
+        }
+    }
+    pub fn is_padding(&self) -> bool {
+        match self {
+            Self::Padding => true,
+            _ => false,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct Blocks<'a>(Vec<BlockComm<'a>>);
+impl Default for Blocks {
+    fn default() -> Self {
+        Self(Vec::new())
+    }
+}
 
 impl<'a> Blocks<'a> {
+    pub fn append_block(mut self, block: BlockPacket<'a>) {
+        let packet_size = block.packet_size();
+        self.0.push(BlockComm::<'a>::Block(block));
+        if packet_size % 2 == 1 {
+            self.0.push(BlockComm::Padding);
+        }
+    }
     pub fn new(mut data: &'a [u8]) -> Self {
-        println!("{:?}", data);
         let mut blocks: Vec<BlockComm<'a>> = Vec::new();
         while let Some(block) = BlockPacket::new(data) {
             if block.get_block_len() == 0 {
@@ -32,7 +63,7 @@ impl<'a> Blocks<'a> {
             let mut len = block.packet_size();
             blocks.push(BlockComm::Block(block));
             if len % 2 == 1 {
-                blocks.push(BlockComm::Padding(data[len]));
+                blocks.push(BlockComm::Padding);
                 len += 1;
             }
             if data.len() == len {
@@ -46,14 +77,29 @@ impl<'a> Blocks<'a> {
 }
 
 // pub struct OptionSuboption(pub u8, pub u8);
+#[derive(Debug)]
 pub struct OptionSuboptions(Vec<OptionAndSub>);
 
+impl Deref for OptionSuboptions {
+    type Target = Vec<OptionAndSub>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
 impl OptionSuboptions {
-    pub fn new(data: &[u8]) -> Result<Self> {
-        todo!()
+    pub fn new(data: &[u8]) -> Self {
+        let mut options = Vec::new();
+        let mut index = 0;
+        while index + 1 < data.len() {
+            options.push(OptionAndSub::new(data[index], data[index + 1]));
+            index += 2;
+        }
+        Self(options)
     }
 }
 
+#[derive(Debug, Clone, Copy, Eq, PartialEq)]
 pub enum OptionAndSub {
     MarAddr,
     IpAddr,
@@ -77,7 +123,8 @@ pub enum OptionAndSub {
 }
 
 impl OptionAndSub {
-    pub fn get(a: (u8, u8)) -> Self {
+    pub fn new(b: u8, c: u8) -> Self {
+        let a = (b, c);
         match a {
             (1, 1) => Self::MarAddr,
             (1, 2) => Self::IpAddr,
@@ -122,5 +169,12 @@ impl OptionAndSub {
             Self::LLDP(a) => (4, a),
             Self::Other(a) => a,
         }
+    }
+}
+impl PrimitiveValues for OptionAndSub {
+    type T = (u8, u8);
+
+    fn to_primitive_values(&self) -> Self::T {
+        self.to_u8s()
     }
 }
