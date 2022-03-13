@@ -13,3 +13,7 @@ pub fn group_copy_to_vec(vec: &mut Vec<u8>, data: &(u8, u8)) {
     vec.push(data.0);
     vec.push(data.1);
 }
+
+pub fn to_u16(a: u8, b: u8) -> u16 {
+    ((a as u16) << 8) | b as u16
+}
