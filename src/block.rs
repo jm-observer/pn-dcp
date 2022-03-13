@@ -1,4 +1,3 @@
-use crate::comm::{copy_to_vec, group_copy_to_vec, slice_copy_to_vec, u16_to_u8s};
 use pnet::packet::PacketSize;
 use pnet_macros::packet;
 use pnet_macros_support::packet::PrimitiveValues;
@@ -40,7 +39,7 @@ impl<'a> BlockComm<'a> {
 
 #[derive(Debug)]
 pub struct Blocks<'a>(Vec<BlockComm<'a>>);
-impl Default for Blocks {
+impl<'a> Default for Blocks<'a> {
     fn default() -> Self {
         Self(Vec::new())
     }

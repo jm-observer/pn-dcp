@@ -10,6 +10,6 @@ pub fn slice_copy_to_vec(vec: &mut Vec<u8>, data: &[u8]) {
     }
 }
 pub fn group_copy_to_vec(vec: &mut Vec<u8>, data: &(u8, u8)) {
-    vec.push(*data.0);
-    vec.push(*data.1);
+    vec.push(data.0);
+    vec.push(data.1);
 }

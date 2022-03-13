@@ -1,9 +1,10 @@
-use crate::block::{Blocks, OptionSuboptions};
+use crate::block::{Blocks, OptionAndSub, OptionSuboptions};
 use crate::consts::*;
 use anyhow::{anyhow, bail};
 use pnet::packet::ethernet::EthernetPacket;
 use pnet_macros::packet;
 // use pnet_macros_support::packet::Packet;
+use crate::comm::{group_copy_to_vec, slice_copy_to_vec, u16_to_u8s};
 use pnet_macros_support::packet::PrimitiveValues;
 use pnet_macros_support::types::{u16be, u32be};
 
@@ -188,18 +189,18 @@ pub struct BlocksBuilder(Vec<u8>);
 
 impl BlocksBuilder {
     pub fn append_block(mut self, option_and_sub: OptionAndSub, payload: &[u8]) -> Self {
-        let mut datas = Vec::with_capacity(payload.len() + 4);
-        group_copy_to_vec(&mut datas, &option_and_sub.to_u8s());
-        slice_copy_to_vec(&mut datas, &u16_to_u8s(datas.len() as u16));
-        slice_copy_to_vec(&mut datas, payload);
-        self.0.push(BlockPacket::owned(datas));
-        self
+        // let mut datas = Vec::with_capacity(payload.len() + 4);
+        // group_copy_to_vec(&mut datas, &option_and_sub.to_u8s());
+        // slice_copy_to_vec(&mut datas, &u16_to_u8s((payload.len() + 4) as u16));
+        // slice_copy_to_vec(&mut datas, payload);
+        // self.0.push(datas);
+        todo!();
     }
-    pub fn build(self) -> Blocks {
-        let mut blocks = Blocks::default();
-        for i in self.0 {
-            blocks.append_block(i);
-        }
-        blocks
+    pub fn build<'a>(self) -> Blocks<'a> {
+        // let mut blocks = Blocks::default();
+        todo!();
+        // for i in self.0 {
+        //     blocks.append_block(i);
+        // }
     }
 }
