@@ -4,7 +4,6 @@ mod comm;
 
 use comm::*;
 use pn_dcg_packet::block::BlockPacket;
-use pn_dcg_packet::consts::PROFINET_ETHER_TYPE;
 use pn_dcg_packet::profinet::ProfinetPacket;
 use pnet::packet::ethernet::EthernetPacket;
 use pnet::packet::Packet;

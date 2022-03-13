@@ -188,7 +188,7 @@ impl PrimitiveValues for FrameId {
 pub struct BlocksBuilder(Vec<u8>);
 
 impl BlocksBuilder {
-    pub fn append_block(mut self, option_and_sub: OptionAndSub, payload: &[u8]) -> Self {
+    pub fn append_block(self, option_and_sub: OptionAndSub, payload: &[u8]) -> Self {
         // let mut datas = Vec::with_capacity(payload.len() + 4);
         // group_copy_to_vec(&mut datas, &option_and_sub.to_u8s());
         // slice_copy_to_vec(&mut datas, &u16_to_u8s((payload.len() + 4) as u16));
