@@ -10,6 +10,7 @@ pnet = "0.29.0"
 pnet_macros = "0.29.0"
 pnet_macros_support = "0.29.0"
 anyhow = "1.0.51"
+bytes = "1.1.0"
 
 
 [dev-dependencies]

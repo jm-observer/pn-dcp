@@ -1,8 +1,11 @@
-use crate::profinet::FrameId;
+pub mod ident_req;
+pub mod ident_resp;
+
 use anyhow::{anyhow, bail, Result};
+use bytes::Bytes;
 use pnet::packet::ethernet::EtherType;
 // use pnet::packet::PacketSize;
-use crate::comm::{slice_copy_to_vec, to_u16, u16_to_u8s};
+use crate::comm::{slice_copy_to_vec, to_u16, u16_to_u8s, BytesWrap};
 use crate::consts::PROFINET_ETHER_TYPE;
 use pnet::util::{MacAddr, Octets};
 use pnet_macros::packet;
@@ -60,13 +63,13 @@ pub enum PnDcpTy {
     HelloRespUnsup, // 0xfe, 0xfc, 0x06, 0x05
     IdentReq,       // 0xfe, 0xfe, 0x05, 0x00
     IdentRespSuc,   // 0xfe, 0xff, 0x05, 0x01
-    IdentRespUnsup, // 0xfe, 0xff, 0x05, 0x05
-    GetReq,         // 0xfe, 0xfd, 0x03, 0x00
-    GetRespSuc,     // 0xfe, 0xfd, 0x03, 0x01
-    GetRespUnsup,   // 0xfe, 0xfd, 0x03, 0x05
-    SetReq,         // 0xfe, 0xfd, 0x04, 0x00
-    SetRespSuc,     // 0xfe, 0xfd, 0x04, 0x01
-    SetRespUnsup,   // 0xfe, 0xfd, 0x04, 0x05
+    // IdentRespUnsup, // 0xfe, 0xff, 0x05, 0x05
+    GetReq,       // 0xfe, 0xfd, 0x03, 0x00
+    GetRespSuc,   // 0xfe, 0xfd, 0x03, 0x01
+    GetRespUnsup, // 0xfe, 0xfd, 0x03, 0x05
+    SetReq,       // 0xfe, 0xfd, 0x04, 0x00
+    SetRespSuc,   // 0xfe, 0xfd, 0x04, 0x01
+    SetRespUnsup, // 0xfe, 0xfd, 0x04, 0x05
 }
 impl PnDcpTy {
     pub fn to_u8s(&self) -> [u8; 4] {
@@ -76,7 +79,7 @@ impl PnDcpTy {
             Self::HelloRespUnsup => [0xfe, 0xfc, 0x06, 0x05],
             Self::IdentReq => [0xfe, 0xfe, 0x05, 0x00],
             Self::IdentRespSuc => [0xfe, 0xff, 0x05, 0x01],
-            Self::IdentRespUnsup => [0xfe, 0xff, 0x05, 0x05],
+            // Self::IdentRespUnsup => [0xfe, 0xff, 0x05, 0x05],
             Self::GetReq => [0xfe, 0xfd, 0x03, 0x00],
             Self::GetRespSuc => [0xfe, 0xfd, 0x03, 0x01],
             Self::GetRespUnsup => [0xfe, 0xfd, 0x03, 0x05],
@@ -95,7 +98,7 @@ impl TryFrom<[u8; 4]> for PnDcpTy {
             [0xfe, 0xfc, 0x06, 0x05] => Ok(Self::HelloRespUnsup),
             [0xfe, 0xfe, 0x05, 0x00] => Ok(Self::IdentReq),
             [0xfe, 0xff, 0x05, 0x01] => Ok(Self::IdentRespSuc),
-            [0xfe, 0xff, 0x05, 0x05] => Ok(Self::IdentRespUnsup),
+            // [0xfe, 0xff, 0x05, 0x05] => Ok(Self::IdentRespUnsup),
             [0xfe, 0xfd, 0x03, 0x00] => Ok(Self::GetReq),
             [0xfe, 0xfd, 0x03, 0x01] => Ok(Self::GetRespSuc),
             [0xfe, 0xfd, 0x03, 0x05] => Ok(Self::GetRespUnsup),
@@ -184,17 +187,15 @@ impl PnDcgBuilder {
     }
 }
 pub struct PnDcg {
-    data: Vec<u8>,
-    pub des: MacAddr,
-    pub src: MacAddr,
+    // data: Bytes,
     pub ty: PnDcpTy,
-    pub xid: [u8; 4],
-    pub payload_len: usize,
+    pub header: BytesWrap,
+    pub blocks: BytesWrap,
 }
 impl PnDcg {
-    pub fn payload(&self) -> &[u8] {
-        &self.data[self.payload_len..]
-    }
+    // pub fn payload(&self) -> &[u8] {
+    //     self.data.split_off() & self.data[26..]
+    // }
 }
 
 impl TryFrom<&[u8]> for PnDcg {
@@ -212,16 +213,12 @@ impl TryFrom<&[u8]> for PnDcg {
             if payload_len + 26 > value.len() {
                 bail!("payload({}) + 26 > {}", payload_len, value.len());
             }
-            let xid = [value[18], value[19], value[20], value[21]];
-            let des = MacAddr::new(value[0], value[1], value[2], value[3], value[4], value[5]);
-            let src = MacAddr::new(value[6], value[7], value[8], value[9], value[10], value[11]);
+            let mut header: BytesWrap = value.to_vec().into();
+            let payload = header.split_off(26)?;
             return Ok(Self {
-                data: value.to_vec(),
-                des,
-                src,
+                header,
                 ty,
-                xid,
-                payload_len,
+                blocks: payload,
             });
         }
         bail!("长度不足，非PnDcg包");

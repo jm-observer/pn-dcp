@@ -1,10 +1,10 @@
-use crate::block::{Blocks, OptionAndSub, OptionSuboptions};
 use crate::consts::*;
 use anyhow::{anyhow, bail};
 use pnet::packet::ethernet::EthernetPacket;
 use pnet_macros::packet;
 // use pnet_macros_support::packet::Packet;
 use crate::comm::{group_copy_to_vec, slice_copy_to_vec, u16_to_u8s};
+use crate::options::OptionAndSub;
 use pnet_macros_support::packet::PrimitiveValues;
 use pnet_macros_support::types::{u16be, u32be};
 

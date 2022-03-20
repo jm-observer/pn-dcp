@@ -1,15 +1,14 @@
 #![allow(dead_code)]
 
-use crate::profinet::FrameId;
 use pnet::packet::ethernet::EtherType;
 
 pub const PROFINET_ETHER_TYPE: EtherType = EtherType(0x8892);
 
 /// FrameID 2 byte
-pub const FRAME_ID_DCP_HELLO: FrameId = FrameId(0xfe, 0xfc);
-pub const FRAME_ID_DCP_GETORSET: FrameId = FrameId(0xfe, 0xfd);
-pub const FRAME_ID_DCP_IDENT_REQ: FrameId = FrameId(0xfe, 0xfe);
-pub const FRAME_ID_DCP_IDENT_RES: FrameId = FrameId(0xfe, 0xff);
+// pub const FRAME_ID_DCP_HELLO: FrameId = FrameId(0xfe, 0xfc);
+// pub const FRAME_ID_DCP_GETORSET: FrameId = FrameId(0xfe, 0xfd);
+// pub const FRAME_ID_DCP_IDENT_REQ: FrameId = FrameId(0xfe, 0xfe);
+// pub const FRAME_ID_DCP_IDENT_RES: FrameId = FrameId(0xfe, 0xff);
 /// ServiceID 1 byte
 pub const SERVICE_ID_GET: u8 = 0x03;
 pub const SERVICE_ID_SET: u8 = 0x04;

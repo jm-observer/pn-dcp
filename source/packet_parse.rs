@@ -68,3 +68,40 @@ fn test_block_packet() {
     assert_eq!(block.payload(), data.as_slice());
     assert_eq!(block.packet_size(), 16usize);
 }
+
+pub fn assert_eq_profinet_packet(packet: &EthernetPacket, origin: &[u8]) {
+    assert_eq!(
+        packet.get_destination().octets().as_ref(),
+        get_destination_mac(origin).unwrap()
+    );
+    assert_eq!(
+        packet.get_source().octets().as_ref(),
+        get_src_mac(origin).unwrap()
+    );
+    let ether_type = u16_to_u8s(packet.get_ethertype().0);
+    assert_eq!(ether_type.as_ref(), get_ethernet_type(origin).unwrap());
+    let profinet: ProfinetPacket = ProfinetPacket::new(packet.payload()).unwrap();
+
+    assert_eq!(
+        profinet.get_frame_id().to_u8s().as_ref(),
+        get_frame_id(origin).unwrap()
+    );
+    assert_eq!(&profinet.get_service_id(), get_service_id(origin).unwrap());
+    assert_eq!(
+        &profinet.get_service_type(),
+        get_service_type(origin).unwrap()
+    );
+    assert_eq!(
+        u32_to_u8s(profinet.get_xid()).as_slice(),
+        get_xid(origin).unwrap()
+    );
+
+    assert_eq!(
+        profinet.get_response_delay(),
+        get_response_delay(origin).unwrap()
+    );
+    assert_eq!(
+        u16_to_u8s(profinet.get_dcp_data_length()).as_slice(),
+        get_dcp_data_length(origin).unwrap()
+    );
+}
