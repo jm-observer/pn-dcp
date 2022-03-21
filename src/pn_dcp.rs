@@ -1,5 +1,10 @@
+pub mod extend_trait;
+pub mod get_req;
+pub mod get_resp;
 pub mod ident_req;
 pub mod ident_resp;
+pub mod set_req;
+pub mod set_resp;
 
 use anyhow::{anyhow, bail, Result};
 use bytes::Bytes;
@@ -188,17 +193,34 @@ impl PnDcgBuilder {
 }
 pub struct PnDcg {
     // data: Bytes,
-    pub ty: PnDcpTy,
-    pub header: BytesWrap,
+    pub head: DcgHead,
     pub blocks: BytesWrap,
-}
-impl PnDcg {
-    // pub fn payload(&self) -> &[u8] {
-    //     self.data.split_off() & self.data[26..]
-    // }
 }
 
 impl TryFrom<&[u8]> for PnDcg {
+    type Error = anyhow::Error;
+
+    fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
+        let head = DcgHead::try_from(value)?;
+        if let Some(blocks_data) = value.get(26..) {
+            let blocks: BytesWrap = blocks_data.to_vec().into();
+            return Ok(Self { head, blocks });
+        }
+        bail!("长度不足，非PnDcg包");
+    }
+}
+
+#[derive(Debug)]
+pub struct DcgHead {
+    pub destination: MacAddr,
+    pub source: MacAddr,
+    pub ty: PnDcpTy,
+    pub xid: [u8; 4],
+    pub reserved_or_delay: [u8; 2],
+    pub payload_len: usize,
+}
+
+impl TryFrom<&[u8]> for DcgHead {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
@@ -213,14 +235,61 @@ impl TryFrom<&[u8]> for PnDcg {
             if payload_len + 26 > value.len() {
                 bail!("payload({}) + 26 > {}", payload_len, value.len());
             }
-            let mut header: BytesWrap = value.to_vec().into();
-            let payload = header.split_off(26)?;
-            return Ok(Self {
-                header,
+            let destination =
+                MacAddr::new(value[0], value[1], value[2], value[3], value[4], value[5]);
+            let source = MacAddr::new(value[6], value[7], value[8], value[9], value[10], value[11]);
+            let xid: [u8; 4] = [value[18], value[19], value[20], value[21]];
+            let reserved_or_delay: [u8; 2] = [value[22], value[23]];
+            return Ok(DcgHead {
+                destination,
+                source,
                 ty,
-                blocks: payload,
+                xid,
+                reserved_or_delay,
+                payload_len,
             });
         }
         bail!("长度不足，非PnDcg包");
     }
 }
+
+// pub const FRAME_ID_DCP_HELLO: FrameId = FrameId(0xfe, 0xfc);
+// pub const FRAME_ID_DCP_GETORSET: FrameId = FrameId(0xfe, 0xfd);
+// pub const FRAME_ID_DCP_IDENT_REQ: FrameId = FrameId(0xfe, 0xfe);
+// pub const FRAME_ID_DCP_IDENT_RES: FrameId = FrameId(0xfe, 0xff);
+
+pub enum FrameId {
+    Hello,
+    GetOrSet,
+    IdentReq,
+    IdentResp,
+    UnSupport(u8, u8),
+}
+impl From<[u8; 2]> for FrameId {
+    fn from(a: [u8; 2]) -> Self {
+        match a {
+            [0xfe, 0xfc] => Self::Hello,
+            [0xfe, 0xfd] => Self::GetOrSet,
+            [0xfe, 0xfe] => Self::IdentReq,
+            [0xfe, 0xff] => Self::IdentResp,
+            [a, b] => Self::UnSupport(a, b),
+        }
+    }
+}
+
+// pub const SERVICE_ID_GET: u8 = 0x03;
+// pub const SERVICE_ID_SET: u8 = 0x04;
+// pub const SERVICE_ID_IDENTIFY: u8 = 0x05;
+// pub const SERVICE_ID_HELLO: u8 = 0x06;
+
+// #[repr(u8)]
+// pub enum ServiceId {
+//     Get = 0x03,
+//     Set = 0x04,
+//     Identify = 0x05,
+//     Hello = 0x06,
+// }
+
+// pub const SERVICE_TYPE_REQUEST: u8 = 0x00;
+// pub const SERVICE_TYPE_RESPONSE_SUCCESS: u8 = 0x01;
+// pub const SERVICE_TYPE_RESPONSE_UNSUPPORTED: u8 = 0x05;

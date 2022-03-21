@@ -10,10 +10,10 @@ pub const PROFINET_ETHER_TYPE: EtherType = EtherType(0x8892);
 // pub const FRAME_ID_DCP_IDENT_REQ: FrameId = FrameId(0xfe, 0xfe);
 // pub const FRAME_ID_DCP_IDENT_RES: FrameId = FrameId(0xfe, 0xff);
 /// ServiceID 1 byte
-pub const SERVICE_ID_GET: u8 = 0x03;
-pub const SERVICE_ID_SET: u8 = 0x04;
-pub const SERVICE_ID_IDENTIFY: u8 = 0x05;
-pub const SERVICE_ID_HELLO: u8 = 0x06;
+// pub const SERVICE_ID_GET: u8 = 0x03;
+// pub const SERVICE_ID_SET: u8 = 0x04;
+// pub const SERVICE_ID_IDENTIFY: u8 = 0x05;
+// pub const SERVICE_ID_HELLO: u8 = 0x06;
 /// Service-Type
 pub const SERVICE_TYPE_REQUEST: u8 = 0x00;
 pub const SERVICE_TYPE_RESPONSE_SUCCESS: u8 = 0x01;

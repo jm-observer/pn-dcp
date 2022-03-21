@@ -2,7 +2,7 @@ use crate::comm::{to_u16, BytesWrap};
 use crate::consts::PROFINET_ETHER_TYPE;
 use crate::dcp_block::{BlockCommonWithoutInfo, BlockPadding};
 use crate::options::OptionAndSubValue;
-use crate::pn_dcp::{PnDcg, PnDcpTy};
+use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
 use anyhow::{bail, Result};
 use bytes::Bytes;
 use pnet::util::MacAddr;
@@ -12,24 +12,8 @@ pub enum IdentReqBlock {
     Block(BlockCommonWithoutInfo),
     Padding(BlockPadding),
 }
-impl From<BlockCommonWithoutInfo> for IdentReqBlock {
-    fn from(a: BlockCommonWithoutInfo) -> Self {
-        Self::Block(a)
-    }
-}
-impl From<BlockPadding> for IdentReqBlock {
-    fn from(a: BlockPadding) -> Self {
-        Self::Padding(a)
-    }
-}
 #[derive(Debug)]
-pub struct IdentReqBlocks(Vec<IdentReqBlock>);
-
-impl From<Vec<IdentReqBlock>> for IdentReqBlocks {
-    fn from(val: Vec<IdentReqBlock>) -> Self {
-        Self(val)
-    }
-}
+pub struct IdentReqBlocks(pub Vec<IdentReqBlock>);
 
 impl TryFrom<BytesWrap> for IdentReqBlocks {
     type Error = anyhow::Error;
@@ -55,7 +39,7 @@ impl TryFrom<BytesWrap> for IdentReqBlocks {
 }
 
 pub struct PacketIdentReq {
-    pub header: BytesWrap,
+    pub head: DcgHead,
     pub blocks: IdentReqBlocks,
 }
 
@@ -77,12 +61,12 @@ impl TryFrom<PnDcg> for PacketIdentReq {
     type Error = anyhow::Error;
 
     fn try_from(dcg: PnDcg) -> Result<Self, Self::Error> {
-        let PnDcg { ty, header, blocks } = dcg;
-        if ty != PnDcpTy::IdentReq {
+        let PnDcg { head, blocks } = dcg;
+        if head.ty != PnDcpTy::IdentReq {
             bail!("todo");
         }
         let blocks = IdentReqBlocks::try_from(blocks)?;
-        Ok(Self { blocks, header })
+        Ok(Self { blocks, head })
     }
 }
 

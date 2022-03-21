@@ -55,16 +55,29 @@ impl Debug for BlockQualifier {
         }
     }
 }
+impl TryFrom<BytesWrap> for BlockQualifier {
+    type Error = anyhow::Error;
 
-impl From<[u8; 2]> for BlockQualifier {
-    fn from(a: [u8; 2]) -> Self {
-        match a {
+    fn try_from(value: BytesWrap) -> std::result::Result<Self, Self::Error> {
+        let val = value.slice(0..=1)?;
+        let a = [val.as_ref()[0], val.as_ref()[1]];
+        Ok(match a {
             USE_TEMPORARY => Self::UseTemporary,
             SAVE_PERMANENT => Self::SavePermanent,
             b => Self::UnSupport(b),
-        }
+        })
     }
 }
+
+// impl From<[u8; 2]> for BlockQualifier {
+//     fn from(a: [u8; 2]) -> Self {
+//         match a {
+//             USE_TEMPORARY => Self::UseTemporary,
+//             SAVE_PERMANENT => Self::SavePermanent,
+//             b => Self::UnSupport(b),
+//         }
+//     }
+// }
 
 #[derive(Debug)]
 pub enum OptionAndSubValue {

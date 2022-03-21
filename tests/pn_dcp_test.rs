@@ -17,7 +17,7 @@ fn test() -> Result<()> {
 
 fn test_dcp(data: Vec<u8>, ty: PnDcpTy) -> Result<()> {
     if let Ok(packet) = PnDcg::try_from(data.as_slice()) {
-        if packet.ty != ty {
+        if packet.head.ty != ty {
             bail!("");
         }
         if get_blocks(data.as_slice())? != packet.blocks.as_ref() {
