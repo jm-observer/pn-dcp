@@ -1,7 +1,7 @@
 use crate::comm::{to_u16, BytesWrap};
 use crate::consts::PROFINET_ETHER_TYPE;
 use crate::dcp_block::{
-    BlockCommon, BlockCommonWithoutInfo, BlockGetReq, BlockIp, BlockPadding, BlockResp,
+    BlockCommon, BlockCommonWithoutInfo, BlockIp, BlockPadding, BlockResp, BlockTrait,
 };
 use crate::options::{OptionAndSub, OptionAndSubValue};
 use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
@@ -45,6 +45,41 @@ pub enum GetRespBlock {
 }
 #[derive(Debug)]
 pub struct GetRespBlocks(pub Vec<GetRespBlock>);
+impl BlockTrait for GetRespBlock {
+    fn len(&self) -> usize {
+        match self {
+            Self::Block(a) => a.len(),
+            Self::Padding(a) => a.len(),
+            Self::BlockIp(a) => a.len(),
+            Self::BlockResp(a) => a.len(),
+        }
+    }
+
+    fn append_data(&self, data: &mut Vec<u8>) {
+        match self {
+            Self::Block(a) => a.append_data(data),
+            Self::Padding(a) => a.append_data(data),
+            Self::BlockIp(a) => a.append_data(data),
+            Self::BlockResp(a) => a.append_data(data),
+        }
+    }
+}
+
+impl BlockTrait for GetRespBlocks {
+    fn len(&self) -> usize {
+        let mut len = 0;
+        for block in &self.0 {
+            len += block.len();
+        }
+        len
+    }
+
+    fn append_data(&self, data: &mut Vec<u8>) {
+        for block in &self.0 {
+            block.append_data(data)
+        }
+    }
+}
 
 impl TryFrom<BytesWrap> for GetRespBlocks {
     type Error = anyhow::Error;

@@ -77,7 +77,7 @@ pub enum PnDcpTy {
     SetRespUnsup, // 0xfe, 0xfd, 0x04, 0x05
 }
 impl PnDcpTy {
-    pub fn to_u8s(&self) -> [u8; 4] {
+    pub fn to_u8_array(&self) -> [u8; 4] {
         match self {
             Self::HelloReq => [0xfe, 0xfc, 0x06, 0x00],
             Self::HelloRespSuc => [0xfe, 0xfc, 0x06, 0x01],
@@ -151,7 +151,7 @@ impl PnDcgBuilder {
         slice_copy_to_vec(&mut data, &src.octets());
         slice_copy_to_vec(&mut data, &PROFINET_ETHER_TYPE.0.octets());
 
-        slice_copy_to_vec(&mut data, &ty.to_u8s());
+        slice_copy_to_vec(&mut data, &ty.to_u8_array());
         slice_copy_to_vec(&mut data, &xid);
         slice_copy_to_vec(&mut data, &reserved);
         slice_copy_to_vec(&mut data, &u16_to_u8s(payload.len() as u16));
@@ -218,6 +218,40 @@ pub struct DcgHead {
     pub xid: [u8; 4],
     pub reserved_or_delay: [u8; 2],
     pub payload_len: usize,
+}
+
+impl DcgHead {
+    pub fn append_data(&self, data: &mut Vec<u8>) {
+        data.extend_from_slice(self.destination.octets().as_slice());
+        data.extend_from_slice(self.source.octets().as_slice());
+        data.extend_from_slice(PROFINET_ETHER_TYPE.0.to_be_bytes().as_slice());
+        data.extend_from_slice(self.ty.to_u8_array().as_slice());
+        data.extend_from_slice(self.xid.as_slice());
+        data.extend_from_slice(self.reserved_or_delay.as_slice());
+        data.extend_from_slice((self.payload_len as u16).to_be_bytes().as_slice());
+    }
+    pub fn new(destination: MacAddr, source: MacAddr, ty: PnDcpTy) -> Self {
+        Self {
+            destination,
+            source,
+            ty,
+            xid: [0u8; 4],
+            reserved_or_delay: [0u8; 2],
+            payload_len: 0,
+        }
+    }
+    pub fn set_xid(&mut self, xid: [u8; 4]) {
+        self.xid = xid;
+    }
+    pub fn set_reserved_or_delay(&mut self, reserved_or_delay: [u8; 2]) {
+        self.reserved_or_delay = reserved_or_delay;
+    }
+    // pub fn set_payload_len(&mut self, payload_len: usize) {
+    //     self.payload_len = payload_len;
+    // }
+    pub fn add_payload_len(&mut self, add: usize) {
+        self.payload_len += add;
+    }
 }
 
 impl TryFrom<&[u8]> for DcgHead {

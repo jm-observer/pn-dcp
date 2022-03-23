@@ -1,6 +1,6 @@
 use crate::comm::{to_u16, BytesWrap};
 use crate::consts::PROFINET_ETHER_TYPE;
-use crate::dcp_block::{BlockCommon, BlockCommonWithoutInfo, BlockIp, BlockPadding};
+use crate::dcp_block::{BlockCommon, BlockCommonWithoutInfo, BlockIp, BlockPadding, BlockTrait};
 use crate::options::{OptionAndSub, OptionAndSubValue};
 use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
 use anyhow::{bail, Result};
@@ -15,6 +15,40 @@ pub enum IdentRespBlock {
 }
 #[derive(Debug)]
 pub struct IdentRespBlocks(pub Vec<IdentRespBlock>);
+
+impl BlockTrait for IdentRespBlocks {
+    fn len(&self) -> usize {
+        let mut len = 0;
+        for block in &self.0 {
+            len += block.len();
+        }
+        len
+    }
+
+    fn append_data(&self, data: &mut Vec<u8>) {
+        for block in &self.0 {
+            block.append_data(data)
+        }
+    }
+}
+
+impl BlockTrait for IdentRespBlock {
+    fn len(&self) -> usize {
+        match self {
+            Self::Block(a) => a.len(),
+            Self::BlockIp(a) => a.len(),
+            Self::Padding(a) => a.len(),
+        }
+    }
+
+    fn append_data(&self, data: &mut Vec<u8>) {
+        match self {
+            Self::Padding(a) => a.append_data(data),
+            Self::BlockIp(a) => a.append_data(data),
+            Self::Block(a) => a.append_data(data),
+        }
+    }
+}
 
 impl TryFrom<BytesWrap> for IdentRespBlocks {
     type Error = anyhow::Error;

@@ -4,31 +4,41 @@ use crate::options::{BlockError, BlockInfo, BlockQualifier, OptionAndSub, Option
 use anyhow::{bail, Result};
 use bytes::Bytes;
 
+pub trait BlockTrait {
+    fn len(&self) -> usize;
+    fn append_data(&self, data: &mut Vec<u8>);
+}
 #[derive(Debug)]
 pub struct BlockPadding;
-#[derive(Debug)]
-pub struct BlockGetReq(Vec<OptionAndSub>);
 
-impl From<Vec<OptionAndSub>> for BlockGetReq {
-    fn from(a: Vec<OptionAndSub>) -> Self {
+impl BlockTrait for BlockPadding {
+    fn len(&self) -> usize {
+        1
+    }
+
+    fn append_data(&self, data: &mut Vec<u8>) {
+        data.push(0u8);
+    }
+}
+#[derive(Debug)]
+pub struct BlockOptionAndSub(OptionAndSub);
+
+impl From<OptionAndSub> for BlockOptionAndSub {
+    fn from(a: OptionAndSub) -> Self {
         Self(a)
     }
 }
-impl TryFrom<BytesWrap> for BlockGetReq {
-    type Error = anyhow::Error;
-    fn try_from(value: BytesWrap) -> Result<Self, Self::Error> {
-        let mut index = 0usize;
-        let mut blocks = Vec::<OptionAndSub>::new();
-        println!("{:?}", value);
-        while let Ok(tmp) = value.slice(index..) {
-            let one = OptionAndSub::try_from(tmp)?;
-            blocks.push(one);
-            index += 2;
-        }
-        Ok(blocks.into())
+impl BlockTrait for BlockOptionAndSub {
+    fn len(&self) -> usize {
+        2
+    }
+
+    fn append_data(&self, data: &mut Vec<u8>) {
+        let (a, b) = self.0.to_u8s();
+        data.push(a);
+        data.push(b);
     }
 }
-
 #[derive(Debug)]
 pub struct BlockIp {
     option: OptionAndSubValue,
@@ -43,8 +53,21 @@ impl BlockIp {
         let option = OptionAndSubValue::init_by_ty(OptionAndSub::IpAddr, val)?;
         Ok(Self { option, info })
     }
-    pub fn len(&self) -> usize {
+}
+impl BlockTrait for BlockIp {
+    fn len(&self) -> usize {
         self.option.payload_size() + 6
+    }
+
+    fn append_data(&self, data: &mut Vec<u8>) {
+        if let OptionAndSubValue::IpAddr(a, b, c) = self.option {
+            self.option.append_option_to_data(data);
+            data.extend_from_slice(&14u16.to_be_bytes());
+            data.extend_from_slice(self.info.to_u8_array().as_slice());
+            self.option.append_value_to_data(data);
+        } else {
+            todo!()
+        }
     }
 }
 
@@ -65,9 +88,17 @@ impl TryFrom<BytesWrap> for BlockSet {
         Ok(Self { option, qualifier })
     }
 }
-impl BlockSet {
-    pub fn len(&self) -> usize {
+
+impl BlockTrait for BlockSet {
+    fn len(&self) -> usize {
         self.option.payload_size() + 6
+    }
+
+    fn append_data(&self, data: &mut Vec<u8>) {
+        self.option.append_option_to_data(data);
+        data.extend_from_slice(&14u16.to_be_bytes());
+        data.extend_from_slice(self.qualifier.to_u8_array().as_slice());
+        self.option.append_value_to_data(data);
     }
 }
 
@@ -86,18 +117,33 @@ impl BlockCommon {
         let option = OptionAndSubValue::init_by_ty(ty, val)?;
         Ok(Self { option, info })
     }
-    pub fn len(&self) -> usize {
+}
+impl BlockTrait for BlockCommon {
+    fn len(&self) -> usize {
         self.option.payload_size() + 6
+    }
+
+    fn append_data(&self, data: &mut Vec<u8>) {
+        self.option.append_option_to_data(data);
+        data.extend_from_slice((self.option.payload_size() as u16).to_be_bytes().as_slice());
+        data.extend_from_slice(self.info.to_u8_array().as_slice());
+        self.option.append_value_to_data(data);
+    }
+}
+#[derive(Debug)]
+pub struct BlockResp(pub OptionAndSub, pub BlockError);
+impl BlockTrait for BlockResp {
+    fn len(&self) -> usize {
+        7
+    }
+
+    fn append_data(&self, data: &mut Vec<u8>) {
+        data.extend_from_slice(OptionAndSub::Response.to_u8_array().as_slice());
+        data.extend_from_slice(self.0.to_u8_array().as_slice());
+        data.push(self.1 as u8);
     }
 }
 
-#[derive(Debug)]
-pub struct BlockResp(pub OptionAndSub, pub BlockError);
-impl BlockResp {
-    pub fn len(&self) -> usize {
-        7
-    }
-}
 impl TryFrom<BytesWrap> for BlockResp {
     type Error = anyhow::Error;
     fn try_from(value: BytesWrap) -> Result<Self, Self::Error> {
@@ -123,9 +169,15 @@ impl TryFrom<BytesWrap> for BlockCommonWithoutInfo {
     }
 }
 
-impl BlockCommonWithoutInfo {
-    pub fn len(&self) -> usize {
+impl BlockTrait for BlockCommonWithoutInfo {
+    fn len(&self) -> usize {
         self.0.payload_size() + 4
+    }
+
+    fn append_data(&self, data: &mut Vec<u8>) {
+        self.0.append_option_to_data(data);
+        data.extend_from_slice((self.0.payload_size() as u16).to_be_bytes().as_slice());
+        self.0.append_value_to_data(data);
     }
 }
 

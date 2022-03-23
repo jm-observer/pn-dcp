@@ -21,6 +21,20 @@ pub enum IpBlockInfo {
     UnSupport([u8; 2]),
 }
 
+impl IpBlockInfo {
+    pub fn to_u8_array(&self) -> [u8; 2] {
+        match self {
+            Self::IpNotSet => [0x00, 0x00],
+            Self::IpSet => [0x00, 0x01],
+            Self::IpSetByDhcp => [0x00, 0x02],
+            Self::IpNotSetConflict => [0x00, 0x80],
+            Self::IpSetConflict => [0x00, 0x81],
+            Self::IpSetByDhcpConflict => [0x00, 0x82],
+            Self::UnSupport(data) => data.clone(),
+        }
+    }
+}
+
 impl TryFrom<BytesWrap> for IpBlockInfo {
     type Error = anyhow::Error;
     fn try_from(value: BytesWrap) -> Result<Self, Self::Error> {

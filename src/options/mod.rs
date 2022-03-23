@@ -17,6 +17,14 @@ pub enum BlockInfo {
     Reserved,
     UnSupport([u8; 2]),
 }
+impl BlockInfo {
+    pub fn to_u8_array(&self) -> [u8; 2] {
+        match self {
+            Self::Reserved => [0x00, 0x00],
+            Self::UnSupport(a) => a.clone(),
+        }
+    }
+}
 
 impl TryFrom<BytesWrap> for BlockInfo {
     type Error = anyhow::Error;
@@ -39,6 +47,15 @@ pub enum BlockQualifier {
     UseTemporary,
     SavePermanent,
     UnSupport([u8; 2]),
+}
+impl BlockQualifier {
+    pub fn to_u8_array(&self) -> [u8; 2] {
+        match self {
+            Self::UnSupport(a) => a.clone(),
+            Self::UseTemporary => USE_TEMPORARY,
+            Self::SavePermanent => SAVE_PERMANENT,
+        }
+    }
 }
 impl Debug for BlockQualifier {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
@@ -103,6 +120,65 @@ pub enum OptionAndSubValue {
 }
 
 impl OptionAndSubValue {
+    pub fn append_option_to_data(&self, data: &mut Vec<u8>) {
+        match self {
+            Self::IpAddr(_, _, _) => {
+                data.extend_from_slice(OptionAndSub::IpAddr.to_u8_array().as_slice())
+            }
+            // Self::FullIpSuite(_, _, _, _) => 16,
+            Self::ManufacturerSpecific(val) => {
+                data.extend_from_slice(OptionAndSub::ManufacturerSpecific.to_u8_array().as_slice())
+            }
+            Self::NameOfStation(val) => {
+                data.extend_from_slice(OptionAndSub::NameOfStation.to_u8_array().as_slice())
+            }
+            Self::DeviceId(_, _) => {
+                data.extend_from_slice(OptionAndSub::DeviceId.to_u8_array().as_slice())
+            }
+            Self::DeviceRole(_, _) => {
+                data.extend_from_slice(OptionAndSub::DeviceRole.to_u8_array().as_slice())
+            }
+            Self::DeviceOptions(val) => {
+                data.extend_from_slice(OptionAndSub::DeviceOptions.to_u8_array().as_slice())
+            }
+            Self::Response(_, _) => {
+                data.extend_from_slice(OptionAndSub::Response.to_u8_array().as_slice())
+            }
+        }
+    }
+    pub fn append_value_to_data(&self, data: &mut Vec<u8>) {
+        match self {
+            Self::IpAddr(a, b, c) => {
+                data.extend_from_slice(a.octets().as_slice());
+                data.extend_from_slice(b.octets().as_slice());
+                data.extend_from_slice(c.octets().as_slice());
+            }
+            // Self::FullIpSuite(_, _, _, _) => 16,
+            Self::ManufacturerSpecific(val) => {
+                data.extend_from_slice(val.as_ref());
+            }
+            Self::NameOfStation(val) => {
+                data.extend_from_slice(val.as_ref());
+            }
+            Self::DeviceId(a, b) => {
+                data.extend_from_slice(a.as_ref());
+                data.extend_from_slice(b.as_ref());
+            }
+            Self::DeviceRole(a, b) => {
+                data.push(*a);
+                data.push(*b);
+            }
+            Self::DeviceOptions(val) => {
+                for option in val {
+                    data.extend_from_slice(option.to_u8_array().as_slice());
+                }
+            }
+            Self::Response(a, b) => {
+                data.extend_from_slice(a.to_u8_array().as_ref());
+                data.push(*b as u8);
+            }
+        }
+    }
     // data的长度校验，应该等于求出来的值
     pub fn init_by_ty(ty: OptionAndSub, data: BytesWrap) -> Result<Self> {
         Ok(match ty {
@@ -263,6 +339,29 @@ impl OptionAndSub {
             Self::Other(a, b) => (a, b),
         }
     }
+    pub fn to_u8_array(&self) -> [u8; 2] {
+        match *self {
+            Self::MarAddr => [1, 1],
+            Self::IpAddr => [1, 2],
+            Self::FullIpSuite => [1, 3],
+            Self::ManufacturerSpecific => [2, 1],
+            Self::NameOfStation => [2, 2],
+            Self::DeviceId => [2, 3],
+            Self::DeviceRole => [2, 4],
+            Self::DeviceOptions => [2, 5],
+            Self::AliasName => [2, 6],
+            Self::StartTransaction => [5, 1],
+            Self::EndTransaction => [5, 2],
+            Self::Signal => [5, 3],
+            Self::Response => [5, 4],
+            Self::ResetFactory => [5, 6],
+            Self::DevicecInitiative => [6, 1],
+            Self::All => [255, 255],
+            Self::DHCP(a) => [3, a],
+            Self::LLDP(a) => [4, a],
+            Self::Other(a, b) => [a, b],
+        }
+    }
 }
 
 // static const value_string pn_dcp_block_error[] = {
@@ -277,15 +376,16 @@ impl OptionAndSub {
 // { 0, NULL }
 // };
 //
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone)]
+#[repr(u8)]
 pub enum BlockError {
-    Ok,
-    OptionUnsupp,
-    SuboptionUnsuppOrNoDataSetAvail,
-    SuboptionNotSet,
-    ResourceError,
-    SETNotPossibleByLocalReasons,
-    InOoperationSETNotPossible,
+    Ok = 0x00,
+    OptionUnsupp = 0x01,
+    SuboptionUnsuppOrNoDataSetAvail = 0x02,
+    SuboptionNotSet = 0x03,
+    ResourceError = 0x04,
+    SETNotPossibleByLocalReasons = 0x05,
+    InOoperationSETNotPossible = 0x06,
 }
 
 impl TryFrom<u8> for BlockError {

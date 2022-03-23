@@ -1,5 +1,5 @@
 use crate::comm::BytesWrap;
-use crate::dcp_block::{BlockGetReq, BlockResp, BlockSet};
+use crate::dcp_block::{BlockResp, BlockSet};
 use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
 use anyhow::bail;
 
