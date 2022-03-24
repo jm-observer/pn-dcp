@@ -8,7 +8,7 @@ pub trait BlockTrait {
     fn len(&self) -> usize;
     fn append_data(&self, data: &mut Vec<u8>);
 }
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct BlockPadding;
 
 impl BlockTrait for BlockPadding {
@@ -20,7 +20,7 @@ impl BlockTrait for BlockPadding {
         data.push(0u8);
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct BlockOptionAndSub(OptionAndSub);
 
 impl From<OptionAndSub> for BlockOptionAndSub {
@@ -39,7 +39,7 @@ impl BlockTrait for BlockOptionAndSub {
         data.push(b);
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct BlockIp {
     option: OptionAndSubValue,
     info: IpBlockInfo,
@@ -71,7 +71,7 @@ impl BlockTrait for BlockIp {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct BlockSet {
     option: OptionAndSubValue,
     qualifier: BlockQualifier,
@@ -102,7 +102,7 @@ impl BlockTrait for BlockSet {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct BlockCommon {
     option: OptionAndSubValue,
     info: BlockInfo,
@@ -130,7 +130,7 @@ impl BlockTrait for BlockCommon {
         self.option.append_value_to_data(data);
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct BlockResp(pub OptionAndSub, pub BlockError);
 impl BlockTrait for BlockResp {
     fn len(&self) -> usize {
@@ -155,8 +155,14 @@ impl TryFrom<BytesWrap> for BlockResp {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct BlockCommonWithoutInfo(pub OptionAndSubValue);
+
+impl From<OptionAndSubValue> for BlockCommonWithoutInfo {
+    fn from(a: OptionAndSubValue) -> Self {
+        Self(a)
+    }
+}
 
 impl TryFrom<BytesWrap> for BlockCommonWithoutInfo {
     type Error = anyhow::Error;

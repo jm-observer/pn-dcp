@@ -10,7 +10,7 @@
 // };
 
 use crate::comm::BytesWrap;
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum IpBlockInfo {
     IpNotSet,
     IpSet,

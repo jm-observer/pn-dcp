@@ -12,7 +12,7 @@ pub mod ip;
 // /*0x0001 - 0xffff reserved */
 // { 0, NULL }
 // };
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum BlockInfo {
     Reserved,
     UnSupport([u8; 2]),
@@ -42,7 +42,7 @@ impl TryFrom<BytesWrap> for BlockInfo {
 const RESERVED: [u8; 2] = [0x00, 0x00];
 const USE_TEMPORARY: [u8; 2] = [0x00, 0x00];
 const SAVE_PERMANENT: [u8; 2] = [0x00, 0x01];
-
+#[derive(Eq, PartialEq)]
 pub enum BlockQualifier {
     UseTemporary,
     SavePermanent,
@@ -96,7 +96,7 @@ impl TryFrom<BytesWrap> for BlockQualifier {
 //     }
 // }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum OptionAndSubValue {
     // MarAddr([u8; 6]),
     IpAddr(Ipv4Addr, Ipv4Addr, Ipv4Addr),
@@ -376,7 +376,7 @@ impl OptionAndSub {
 // { 0, NULL }
 // };
 //
-#[derive(Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(u8)]
 pub enum BlockError {
     Ok = 0x00,

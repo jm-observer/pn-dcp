@@ -210,7 +210,7 @@ impl TryFrom<&[u8]> for PnDcg {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct DcgHead {
     pub destination: MacAddr,
     pub source: MacAddr,

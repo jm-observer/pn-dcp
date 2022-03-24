@@ -4,15 +4,41 @@ use crate::dcp_block::{
     BlockCommon, BlockCommonWithoutInfo, BlockIp, BlockPadding, BlockResp, BlockTrait,
 };
 use crate::options::{OptionAndSub, OptionAndSubValue};
+use crate::pn_dcp::get_req::PacketGetReq;
 use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
 use anyhow::{bail, Result};
 use bytes::Bytes;
+use pn_dcg_macro::ImplDerefMutHead;
 use pnet::util::MacAddr;
-
-#[derive(Debug)]
+use std::ops::{Deref, DerefMut};
+#[derive(Debug, Eq, PartialEq, ImplDerefMutHead)]
 pub struct PacketGetResp {
-    pub head: DcgHead,
-    pub blocks: GetRespBlocks,
+    head: DcgHead,
+    blocks: GetRespBlocks,
+}
+
+impl PacketGetResp {
+    pub fn new(get_req: &PacketGetReq) -> Self {
+        let mut head = DcgHead::new(
+            get_req.source.clone(),
+            get_req.destination.clone(),
+            PnDcpTy::GetRespSuc,
+        );
+        Self {
+            head,
+            blocks: GetRespBlocks::default(),
+        }
+    }
+    pub fn append_block(&mut self, option: OptionAndSub) {
+        self.blocks.push(option.into());
+        self.head.add_payload_len(2);
+    }
+    pub fn to_vec(&self) -> Vec<u8> {
+        let mut data = Vec::with_capacity(self.head.payload_len + 26);
+        self.head.append_data(&mut data);
+        self.blocks.append_data(&mut data);
+        data
+    }
 }
 
 impl TryFrom<PnDcg> for PacketGetResp {
@@ -36,15 +62,16 @@ impl TryFrom<&[u8]> for PacketGetResp {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum GetRespBlock {
     Block(BlockCommon),
     BlockIp(BlockIp),
     BlockResp(BlockResp),
     Padding(BlockPadding),
 }
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Default)]
 pub struct GetRespBlocks(pub Vec<GetRespBlock>);
+
 impl BlockTrait for GetRespBlock {
     fn len(&self) -> usize {
         match self {

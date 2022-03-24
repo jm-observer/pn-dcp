@@ -2,19 +2,38 @@ use crate::comm::{to_u16, BytesWrap};
 use crate::consts::PROFINET_ETHER_TYPE;
 use crate::dcp_block::{BlockCommon, BlockCommonWithoutInfo, BlockIp, BlockPadding, BlockTrait};
 use crate::options::{OptionAndSub, OptionAndSubValue};
+use crate::pn_dcp::ident_req::PacketIdentReq;
 use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
 use anyhow::{bail, Result};
 use bytes::Bytes;
 use pnet::util::MacAddr;
+use std::ops::{Deref, DerefMut};
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum IdentRespBlock {
     Block(BlockCommon),
     BlockIp(BlockIp),
     Padding(BlockPadding),
 }
-#[derive(Debug)]
-pub struct IdentRespBlocks(pub Vec<IdentRespBlock>);
+#[derive(Debug, Eq, PartialEq, Default)]
+pub struct IdentRespBlocks(Vec<IdentRespBlock>);
+impl IdentRespBlocks {
+    pub fn new(data: Vec<IdentRespBlock>) -> Self {
+        Self(data)
+    }
+}
+impl Deref for IdentRespBlocks {
+    type Target = Vec<IdentRespBlock>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl DerefMut for IdentRespBlocks {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl BlockTrait for IdentRespBlocks {
     fn len(&self) -> usize {
@@ -88,10 +107,37 @@ impl TryFrom<BytesWrap> for IdentRespBlocks {
         Ok(blocks.into())
     }
 }
-
+#[derive(Debug, Eq, PartialEq)]
 pub struct PacketIdentResp {
-    pub head: DcgHead,
-    pub blocks: IdentRespBlocks,
+    head: DcgHead,
+    blocks: IdentRespBlocks,
+}
+
+impl PacketIdentResp {
+    pub fn new(source: MacAddr, ident_req: PacketIdentReq) -> Self {
+        let mut head = DcgHead::new(ident_req.source.clone(), source, PnDcpTy::IdentRespSuc);
+        head.set_xid(ident_req.xid);
+        Self {
+            head,
+            blocks: IdentRespBlocks::default(),
+        }
+    }
+    pub fn append_block(&mut self, block: impl Into<IdentRespBlock>) {
+        let block = block.into();
+        let block_len = block.len();
+        self.blocks.0.push(block);
+        self.head.add_payload_len(block_len);
+        if block_len % 1 == 1 {
+            self.blocks.0.push(IdentRespBlock::Padding(BlockPadding));
+            self.head.add_payload_len(1);
+        }
+    }
+    pub fn to_vec(&self) -> Vec<u8> {
+        let mut data = Vec::with_capacity(self.head.payload_len + 26);
+        self.head.append_data(&mut data);
+        self.blocks.append_data(&mut data);
+        data
+    }
 }
 
 impl TryFrom<PnDcg> for PacketIdentResp {

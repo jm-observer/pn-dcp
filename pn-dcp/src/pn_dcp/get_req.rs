@@ -1,13 +1,35 @@
 use crate::comm::BytesWrap;
-use crate::dcp_block::{BlockOptionAndSub, BlockTrait};
+use crate::dcp_block::{BlockOptionAndSub, BlockPadding, BlockTrait};
 use crate::options::OptionAndSub;
 use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
 use anyhow::bail;
-
-#[derive(Debug)]
+use pn_dcg_macro::ImplDerefMutHead;
+use pnet::util::MacAddr;
+use std::ops::{Deref, DerefMut};
+#[derive(Debug, Eq, PartialEq, ImplDerefMutHead)]
 pub struct PacketGetReq {
-    pub head: DcgHead,
-    pub blocks: BlockGetReq,
+    head: DcgHead,
+    blocks: BlockGetReq,
+}
+
+impl PacketGetReq {
+    pub fn new(source: MacAddr, dest: MacAddr) -> Self {
+        let mut head = DcgHead::new(dest, source, PnDcpTy::GetReq);
+        Self {
+            head,
+            blocks: BlockGetReq::default(),
+        }
+    }
+    pub fn append_block(&mut self, option: OptionAndSub) {
+        self.blocks.push(option.into());
+        self.head.add_payload_len(2);
+    }
+    pub fn to_vec(&self) -> Vec<u8> {
+        let mut data = Vec::with_capacity(self.head.payload_len + 26);
+        self.head.append_data(&mut data);
+        self.blocks.append_data(&mut data);
+        data
+    }
 }
 
 impl TryFrom<PnDcg> for PacketGetReq {
@@ -32,8 +54,21 @@ impl TryFrom<&[u8]> for PacketGetReq {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq, Default)]
 pub struct BlockGetReq(Vec<BlockOptionAndSub>);
+
+impl Deref for BlockGetReq {
+    type Target = Vec<BlockOptionAndSub>;
+
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl DerefMut for BlockGetReq {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
 impl BlockTrait for BlockGetReq {
     fn len(&self) -> usize {

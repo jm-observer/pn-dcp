@@ -7,5 +7,5 @@ pub mod builder;
 pub mod comm;
 pub mod consts;
 pub mod dcp_block;
-mod options;
+pub mod options;
 pub mod pn_dcp;

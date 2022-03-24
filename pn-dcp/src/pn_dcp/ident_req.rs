@@ -6,14 +6,16 @@ use crate::pn_dcp::ident_req::IdentReqBlock::Padding;
 use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
 use anyhow::{bail, Result};
 use bytes::Bytes;
+use pn_dcg_macro::ImplDerefMutHead;
 use pnet::util::MacAddr;
+use std::ops::{Deref, DerefMut};
 
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum IdentReqBlock {
     Block(BlockCommonWithoutInfo),
     Padding(BlockPadding),
 }
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct IdentReqBlocks(pub Vec<IdentReqBlock>);
 
 impl BlockTrait for IdentReqBlocks {
@@ -77,9 +79,10 @@ impl TryFrom<BytesWrap> for IdentReqBlocks {
     }
 }
 
+#[derive(Debug, Eq, PartialEq, ImplDerefMutHead)]
 pub struct PacketIdentReq {
-    pub head: DcgHead,
-    pub blocks: IdentReqBlocks,
+    head: DcgHead,
+    blocks: IdentReqBlocks,
 }
 
 impl PacketIdentReq {
@@ -91,13 +94,8 @@ impl PacketIdentReq {
             blocks: IdentReqBlocks::default(),
         }
     }
-    pub fn set_xid(&mut self, xid: [u8; 4]) {
-        self.head.set_xid(xid);
-    }
-    pub fn set_reserved_or_delay(&mut self, reserved_or_delay: [u8; 2]) {
-        self.head.set_reserved_or_delay(reserved_or_delay);
-    }
-    pub fn append_block(&mut self, block: IdentReqBlock) {
+    pub fn append_block(&mut self, block: impl Into<IdentReqBlock>) {
+        let block = block.into();
         let block_len = block.len();
         self.blocks.0.push(block);
         self.head.add_payload_len(block_len);
@@ -111,21 +109,6 @@ impl PacketIdentReq {
         self.head.append_data(&mut data);
         self.blocks.append_data(&mut data);
         data
-    }
-
-    // pub fn set_payload_len(&mut self, payload_len: usize) {
-    //     self.payload_len = payload_len;
-    // }
-    pub fn get_manufacturer_pecific_block(&self) -> Result<BytesWrap> {
-        for block in self.blocks.0.as_slice() {
-            if let IdentReqBlock::Block(BlockCommonWithoutInfo(
-                OptionAndSubValue::ManufacturerSpecific(data),
-            )) = block
-            {
-                return Ok(data.clone());
-            }
-        }
-        bail!("todo 未包含manufacturer_pecific信息")
     }
 }
 
