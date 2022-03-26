@@ -3,10 +3,11 @@ use crate::dcp_block::{BlockOptionAndSub, BlockPadding, BlockTrait};
 use crate::options::OptionAndSub;
 use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
 use anyhow::bail;
-use pn_dcg_macro::ImplDerefMutHead;
+use pn_dcg_macro::derefmut;
 use pnet::util::MacAddr;
 use std::ops::{Deref, DerefMut};
-#[derive(Debug, Eq, PartialEq, ImplDerefMutHead)]
+#[derive(Debug, Eq, PartialEq)]
+#[derefmut(head)]
 pub struct PacketGetReq {
     head: DcgHead,
     blocks: BlockGetReq,
@@ -14,7 +15,7 @@ pub struct PacketGetReq {
 
 impl PacketGetReq {
     pub fn new(source: MacAddr, dest: MacAddr) -> Self {
-        let mut head = DcgHead::new(dest, source, PnDcpTy::GetReq);
+        let head = DcgHead::new(dest, source, PnDcpTy::GetReq);
         Self {
             head,
             blocks: BlockGetReq::default(),
@@ -55,20 +56,8 @@ impl TryFrom<&[u8]> for PacketGetReq {
 }
 
 #[derive(Debug, Eq, PartialEq, Default)]
+#[derefmut(0)]
 pub struct BlockGetReq(Vec<BlockOptionAndSub>);
-
-impl Deref for BlockGetReq {
-    type Target = Vec<BlockOptionAndSub>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl DerefMut for BlockGetReq {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
-    }
-}
 
 impl BlockTrait for BlockGetReq {
     fn len(&self) -> usize {

@@ -1,7 +1,6 @@
 #![allow(dead_code)]
 
 use anyhow::{anyhow, bail, Result};
-use pn_dcg_packet::comm::to_u16;
 
 pub fn get_ident_req() -> Vec<u8> {
     vec![
@@ -117,7 +116,7 @@ pub fn get_response_delay(data: &[u8]) -> Result<u16> {
     if data.len() <= 23 {
         bail!("数组越界")
     } else {
-        Ok(to_u16(data[22], data[23]))
+        Ok(u16::from_be_bytes([data[22], data[23]]))
     }
     // data.get(22..=23).ok_or(anyhow!("数组越界"))
 }
@@ -128,7 +127,7 @@ pub fn get_blocks(data: &[u8]) -> Result<&[u8]> {
     if data.len() <= 27 {
         bail!("数组越界")
     } else {
-        let mut size = to_u16(data[24], data[25]) as usize;
+        let mut size = u16::from_be_bytes([data[24], data[25]]) as usize;
         size += 25;
         Ok(&data[26..=size])
     }

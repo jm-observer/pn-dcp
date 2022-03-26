@@ -1,4 +1,4 @@
-use crate::comm::{to_u16, BytesWrap};
+use crate::comm::BytesWrap;
 use crate::options::ip::IpBlockInfo;
 use crate::options::{BlockError, BlockInfo, BlockQualifier, OptionAndSub, OptionAndSubValue};
 use anyhow::{bail, Result};
@@ -192,7 +192,7 @@ impl TryFrom<&[u8]> for Len {
     type Error = anyhow::Error;
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         if let Some(val) = value.get(0..=1) {
-            let len = to_u16(val[0], val[1]) as usize;
+            let len = u16::from_be_bytes([val[0], val[1]]) as usize;
             Ok(Len(len))
         } else {
             bail!("")

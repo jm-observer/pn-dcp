@@ -28,7 +28,7 @@ impl From<BlockResp> for GetRespBlock {
 }
 impl From<Vec<GetRespBlock>> for GetRespBlocks {
     fn from(val: Vec<GetRespBlock>) -> Self {
-        GetRespBlocks(val)
+        GetRespBlocks::from_vec(val)
     }
 }
 
@@ -50,7 +50,7 @@ impl From<BlockPadding> for IdentReqBlock {
 
 impl From<Vec<IdentReqBlock>> for IdentReqBlocks {
     fn from(val: Vec<IdentReqBlock>) -> Self {
-        IdentReqBlocks(val)
+        IdentReqBlocks::from_vec(val)
     }
 }
 
@@ -71,6 +71,6 @@ impl From<BlockPadding> for IdentRespBlock {
 }
 impl From<Vec<IdentRespBlock>> for IdentRespBlocks {
     fn from(val: Vec<IdentRespBlock>) -> Self {
-        Self::new(val)
+        Self::from(val)
     }
 }

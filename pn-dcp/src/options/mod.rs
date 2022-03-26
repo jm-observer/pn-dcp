@@ -1,4 +1,4 @@
-use crate::comm::{to_u16, BytesWrap};
+use crate::comm::BytesWrap;
 use crate::options::ip::IpBlockInfo;
 use anyhow::{bail, Result};
 use bytes::Bytes;

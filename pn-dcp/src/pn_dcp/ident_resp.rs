@@ -1,4 +1,4 @@
-use crate::comm::{to_u16, BytesWrap};
+use crate::comm::BytesWrap;
 use crate::consts::PROFINET_ETHER_TYPE;
 use crate::dcp_block::{BlockCommon, BlockCommonWithoutInfo, BlockIp, BlockPadding, BlockTrait};
 use crate::options::{OptionAndSub, OptionAndSubValue};
@@ -6,6 +6,7 @@ use crate::pn_dcp::ident_req::PacketIdentReq;
 use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
 use anyhow::{bail, Result};
 use bytes::Bytes;
+use pn_dcg_macro::derefmut;
 use pnet::util::MacAddr;
 use std::ops::{Deref, DerefMut};
 
@@ -16,22 +17,11 @@ pub enum IdentRespBlock {
     Padding(BlockPadding),
 }
 #[derive(Debug, Eq, PartialEq, Default)]
+#[derefmut(0)]
 pub struct IdentRespBlocks(Vec<IdentRespBlock>);
 impl IdentRespBlocks {
-    pub fn new(data: Vec<IdentRespBlock>) -> Self {
+    pub fn from(data: Vec<IdentRespBlock>) -> Self {
         Self(data)
-    }
-}
-impl Deref for IdentRespBlocks {
-    type Target = Vec<IdentRespBlock>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-impl DerefMut for IdentRespBlocks {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.0
     }
 }
 
@@ -108,6 +98,7 @@ impl TryFrom<BytesWrap> for IdentRespBlocks {
     }
 }
 #[derive(Debug, Eq, PartialEq)]
+#[derefmut(head)]
 pub struct PacketIdentResp {
     head: DcgHead,
     blocks: IdentRespBlocks,

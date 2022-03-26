@@ -10,7 +10,7 @@ use anyhow::{anyhow, bail, Result};
 use bytes::Bytes;
 use pnet::packet::ethernet::EtherType;
 // use pnet::packet::PacketSize;
-use crate::comm::{slice_copy_to_vec, to_u16, u16_to_u8s, BytesWrap};
+use crate::comm::{slice_copy_to_vec, BytesWrap};
 use crate::consts::PROFINET_ETHER_TYPE;
 use pnet::util::{MacAddr, Octets};
 use pnet_macros::packet;
@@ -154,12 +154,12 @@ impl PnDcgBuilder {
         slice_copy_to_vec(&mut data, &ty.to_u8_array());
         slice_copy_to_vec(&mut data, &xid);
         slice_copy_to_vec(&mut data, &reserved);
-        slice_copy_to_vec(&mut data, &u16_to_u8s(payload.len() as u16));
+        slice_copy_to_vec(&mut data, &(payload.len() as u16).to_be_bytes());
         slice_copy_to_vec(&mut data, payload.as_slice());
         Ok(data)
     }
     pub fn set_response_delay(mut self, response_delay: u16) -> Self {
-        self.reserved = u16_to_u8s(response_delay);
+        self.reserved = response_delay.to_be_bytes();
         self
     }
     pub fn set_reserved(mut self, reserved: [u8; 2]) -> Self {
@@ -260,9 +260,9 @@ impl TryFrom<&[u8]> for DcgHead {
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         if let Some(payload_len) = value
             .get(25)
-            .and_then(|x| Some(to_u16(value[24], *x) as usize))
+            .and_then(|x| Some(u16::from_be_bytes([value[24], *x]) as usize))
         {
-            if PROFINET_ETHER_TYPE.0 != to_u16(value[12], value[13]) {
+            if PROFINET_ETHER_TYPE.0 != u16::from_be_bytes([value[12], value[13]]) {
                 bail!("todo");
             }
             let ty = PnDcpTy::try_from([value[14], value[15], value[16], value[17]])?;

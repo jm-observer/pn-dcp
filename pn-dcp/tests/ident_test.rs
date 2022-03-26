@@ -1,10 +1,10 @@
 mod comm;
 use anyhow::Result;
 use comm::*;
-use pn_dcg_packet::comm::BytesWrap;
-use pn_dcg_packet::options::{OptionAndSub, OptionAndSubValue};
-use pn_dcg_packet::pn_dcp::ident_req::PacketIdentReq;
-use pn_dcg_packet::pn_dcp::ident_resp::PacketIdentResp;
+use pn_dcp::comm::BytesWrap;
+use pn_dcp::options::{OptionAndSub, OptionAndSubValue};
+use pn_dcp::pn_dcp::ident_req::PacketIdentReq;
+use pn_dcp::pn_dcp::ident_resp::PacketIdentResp;
 use pnet::util::MacAddr;
 
 #[test]
@@ -33,7 +33,7 @@ fn ident_req_test() -> Result<()> {
 fn ident_resp_test() -> Result<()> {
     let ident_req_data = get_ident_resp();
     let req = PacketIdentResp::try_from(ident_req_data.as_slice())?;
-    println!("{:0x?}", req.blocks);
+    // println!("{:0x?}", req.blocks);
     println!("{:0x?}", get_blocks(ident_req_data.as_slice())?);
     Ok(())
 }

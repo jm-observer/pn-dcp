@@ -2,8 +2,11 @@ use crate::comm::BytesWrap;
 use crate::dcp_block::BlockSet;
 use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
 use anyhow::bail;
+use pn_dcg_macro::derefmut;
+use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Eq, PartialEq)]
+#[derefmut(head)]
 pub struct PacketSetReq {
     head: DcgHead,
     blocks: BlockSet,
