@@ -105,22 +105,22 @@ trait OptionBuilder {
     // }
 }
 
-pub struct OptionAndSubValueBuilder;
-impl OptionAndSubValueBuilder {
-    pub fn build_device_options() -> DeviceOptionsBuilder {
-        DeviceOptionsBuilder::default()
-    }
-    // pub fn build_ip_addr_options(
-    //     ip: Ipv4Addr,
-    //     subnetmask: Ipv4Addr,
-    //     gateway: Ipv4Addr,
-    // ) -> IpAddrBuilder {
-    //     IpAddrBuilder(ip, subnetmask, gateway, IpBlockInfo::default())
-    // }
-}
+// pub struct OptionAndSubValueBuilder;
+// impl OptionAndSubValueBuilder {
+//     pub fn build_device_options() -> DeviceOptionsBuilder {
+//         DeviceOptionsBuilder::default()
+//     }
+//     // pub fn build_ip_addr_options(
+//     //     ip: Ipv4Addr,
+//     //     subnetmask: Ipv4Addr,
+//     //     gateway: Ipv4Addr,
+//     // ) -> IpAddrBuilder {
+//     //     IpAddrBuilder(ip, subnetmask, gateway, IpBlockInfo::default())
+//     // }
+// }
 #[derive(Debug, Eq, PartialEq)]
-pub struct IpAddr(pub Ipv4Addr, pub Ipv4Addr, pub Ipv4Addr);
-impl IpAddr {
+pub struct InnerIpAddr(pub Ipv4Addr, pub Ipv4Addr, pub Ipv4Addr);
+impl InnerIpAddr {
     pub fn new(data: BytesWrap) -> Result<Self> {
         let val = data.slice(0..=11)?;
         let val = val.as_ref();
@@ -129,6 +129,9 @@ impl IpAddr {
             Ipv4Addr::new(val[4], val[5], val[6], val[7]),
             Ipv4Addr::new(val[8], val[9], val[10], val[11]),
         ))
+    }
+    pub fn new_by_ipv4(ip: Ipv4Addr, subnetmask: Ipv4Addr, gateway: Ipv4Addr) -> Self {
+        Self(ip, subnetmask, gateway)
     }
     pub fn append_value_to_data(&self, data: &mut Vec<u8>) {
         data.extend_from_slice(self.0.octets().as_slice());
@@ -140,6 +143,10 @@ impl IpAddr {
     }
     pub fn to_option(self) -> OptionAndSubValue {
         OptionAndSubValue::IpAddr(self)
+    }
+
+    pub fn append_to_ident_resp(self, packet: &mut PacketIdentResp, info: IpBlockInfo) {
+        packet.append_block_ip(self, info)
     }
 }
 
@@ -179,7 +186,7 @@ impl DeviceOptionsBuilder {
         self.0.push(option);
         self
     }
-    fn build(self) -> OptionAndSubValue {
+    pub fn build(self) -> OptionAndSubValue {
         OptionAndSubValue::DeviceOptions(self.0)
     }
 }
@@ -187,7 +194,7 @@ impl DeviceOptionsBuilder {
 #[derive(Debug, Eq, PartialEq)]
 pub enum OptionAndSubValue {
     // MarAddr([u8; 6]),
-    IpAddr(IpAddr),
+    IpAddr(InnerIpAddr),
     // FullIpSuite(Ipv4Addr, Ipv4Addr, Ipv4Addr, Ipv4Addr),
     ManufacturerSpecific(BytesWrap),
     NameOfStation(BytesWrap),
@@ -272,7 +279,7 @@ impl OptionAndSubValue {
             OptionAndSub::IpAddr => {
                 let val = data.slice(0..=11)?;
                 let val = val.as_ref();
-                Self::IpAddr(IpAddr(
+                Self::IpAddr(InnerIpAddr(
                     Ipv4Addr::new(val[0], val[1], val[2], val[3]),
                     Ipv4Addr::new(val[4], val[5], val[6], val[7]),
                     Ipv4Addr::new(val[8], val[9], val[10], val[11]),
@@ -325,6 +332,13 @@ impl OptionAndSubValue {
             Self::DeviceOptions(val) => val.len() * 2,
             Self::Response(_) => 3,
         }
+    }
+
+    pub fn append_to_ident_resp_default(self, packet: &mut PacketIdentResp) {
+        packet.append_block_common_default(self);
+    }
+    pub fn append_to_ident_resp(self, packet: &mut PacketIdentResp, info: BlockInfo) {
+        packet.append_block_common(self, info);
     }
 }
 

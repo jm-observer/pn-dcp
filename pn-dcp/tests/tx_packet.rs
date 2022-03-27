@@ -48,14 +48,3 @@ pub fn simulate_host() -> Result<()> {
     }
     Ok(())
 }
-fn get_interface(index: u32) -> Result<NetworkInterface> {
-    for interface in interfaces() {
-        println!("{}", interface);
-    }
-    for interface in interfaces() {
-        if interface.index == index {
-            return Ok(interface);
-        }
-    }
-    bail!("不存在【index={}】的网络接口", index);
-}

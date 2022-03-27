@@ -4,7 +4,7 @@ use crate::dcp_block::{
     BlockCommon, BlockCommonWithoutInfo, BlockIp, BlockPadding, BlockResp, BlockTrait,
 };
 use crate::options::ip::IpBlockInfo;
-use crate::options::{BlockError, BlockInfo, IpAddr, OptionAndSub, OptionAndSubValue};
+use crate::options::{BlockError, BlockInfo, InnerIpAddr, OptionAndSub, OptionAndSubValue};
 use crate::pn_dcp::get_req::PacketGetReq;
 use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
 use anyhow::{bail, Result};
@@ -37,7 +37,7 @@ impl PacketGetResp {
         self.head.add_payload_len(2);
     }
 
-    pub fn append_block_ip(&mut self, ip: IpAddr, info: IpBlockInfo) {
+    pub fn append_block_ip(&mut self, ip: InnerIpAddr, info: IpBlockInfo) {
         self.append_block(BlockIp { ip, info })
     }
     pub fn append_block_common(&mut self, option: OptionAndSubValue, info: BlockInfo) {
@@ -102,6 +102,15 @@ impl BlockTrait for GetRespBlock {
         }
     }
 
+    fn payload(&self) -> usize {
+        match self {
+            Self::Block(a) => a.payload(),
+            Self::Padding(a) => a.payload(),
+            Self::BlockIp(a) => a.payload(),
+            Self::BlockResp(a) => a.payload(),
+        }
+    }
+
     fn append_data(&self, data: &mut Vec<u8>) {
         match self {
             Self::Block(a) => a.append_data(data),
@@ -121,6 +130,10 @@ impl BlockTrait for GetRespBlocks {
         len
     }
 
+    fn payload(&self) -> usize {
+        unreachable!()
+    }
+
     fn append_data(&self, data: &mut Vec<u8>) {
         for block in &self.0 {
             block.append_data(data)
@@ -134,12 +147,11 @@ impl TryFrom<BytesWrap> for GetRespBlocks {
         let mut index = 0usize;
         let mut blocks = Vec::<GetRespBlock>::new();
         while let Ok(tmp) = value.slice(index..) {
-            println!("{:?}", tmp.as_ref());
             let option = OptionAndSub::try_from(tmp.clone())?;
             let len = match option {
                 OptionAndSub::IpAddr => {
                     let block = BlockIp::try_from_bytes(tmp)?;
-                    println!("{:?}", block);
+                    // println!("{:?}", block);
                     let len = block.len();
                     blocks.push(block.into());
                     len
@@ -152,7 +164,6 @@ impl TryFrom<BytesWrap> for GetRespBlocks {
                 }
                 option => {
                     let block = BlockCommon::try_from_bytes(option, tmp)?;
-                    println!("{:?}", block);
                     let len = block.len();
                     blocks.push(block.into());
                     len

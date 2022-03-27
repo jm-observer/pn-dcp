@@ -31,6 +31,11 @@ impl From<Vec<u8>> for BytesWrap {
         Self(a.into())
     }
 }
+impl From<&[u8]> for BytesWrap {
+    fn from(a: &[u8]) -> Self {
+        Self(a.to_vec().into())
+    }
+}
 
 impl Clone for BytesWrap {
     fn clone(&self) -> Self {

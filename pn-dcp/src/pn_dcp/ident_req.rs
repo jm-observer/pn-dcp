@@ -34,6 +34,10 @@ impl BlockTrait for IdentReqBlocks {
         len
     }
 
+    fn payload(&self) -> usize {
+        unreachable!()
+    }
+
     fn append_data(&self, data: &mut Vec<u8>) {
         for block in &self.0 {
             block.append_data(data)
@@ -46,6 +50,13 @@ impl BlockTrait for IdentReqBlock {
         match self {
             Self::Block(a) => a.len(),
             Self::Padding(a) => a.len(),
+        }
+    }
+
+    fn payload(&self) -> usize {
+        match self {
+            Self::Block(a) => a.payload(),
+            Self::Padding(a) => a.payload(),
         }
     }
 
@@ -69,7 +80,6 @@ impl TryFrom<BytesWrap> for IdentReqBlocks {
     fn try_from(value: BytesWrap) -> Result<Self, Self::Error> {
         let mut index = 0usize;
         let mut blocks = Vec::<IdentReqBlock>::new();
-        println!("{:?}", value);
         while let Ok(tmp) = value.slice(index..) {
             let one = BlockCommonWithoutInfo::try_from(tmp)?;
             let len = one.len();
@@ -107,7 +117,7 @@ impl PacketIdentReq {
         let block_len = block.len();
         self.blocks.0.push(block);
         self.head.add_payload_len(block_len);
-        if block_len % 1 == 1 {
+        if block_len % 2 == 1 {
             self.blocks.0.push(IdentReqBlock::Padding(BlockPadding));
             self.head.add_payload_len(1);
         }

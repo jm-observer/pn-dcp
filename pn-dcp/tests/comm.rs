@@ -3,7 +3,10 @@
 use anyhow::{anyhow, bail, Result};
 use pn_dcp::comm::BytesWrap;
 use pn_dcp::options::{OptionAndSub, OptionAndSubValue};
-use pnet::datalink::MacAddr;
+use pnet::datalink;
+use pnet::datalink::interfaces;
+use pnet::datalink::Channel::Ethernet;
+use pnet::datalink::{Config, MacAddr, NetworkInterface};
 
 pub fn get_ident_req() -> Vec<u8> {
     vec![
@@ -146,13 +149,35 @@ fn test() {
     assert_eq!(get_destination_mac(right.as_slice()).unwrap(), &left[1..7]);
 }
 
-pub fn init_manufacturer() -> OptionAndSubValue {
-    let data = "S7-200 SMART".as_bytes().to_vec();
-    let manufacturer =
-        OptionAndSubValue::init_by_ty(OptionAndSub::ManufacturerSpecific, BytesWrap::from(data))?;
-    manufacturer
+pub fn tx_data(data: Vec<u8>) -> Result<()> {
+    let index: u32 = 21;
+    let interface = get_interface(index)?;
+    if let Some(_src) = interface.mac {
+        let cf = Config::default();
+        let (mut tx, _rx) = match datalink::channel(&interface, cf) {
+            Ok(Ethernet(tx, rx)) => (tx, rx),
+            Ok(_) => bail!("Unhandled channel type"),
+            Err(e) => bail!(
+                "An error occurred when creating the datalink channel: {}",
+                e
+            ),
+        };
+        if let Some(Err(e)) = tx.send_to(data.as_slice(), Some(interface.clone())) {
+            bail!("error: {:?}", e);
+        }
+    } else {
+        panic!("");
+    }
+    Ok(())
 }
-
-pub fn init() -> OptionAndSubValue {
-    OptionAndSubValue::
+pub fn get_interface(index: u32) -> Result<NetworkInterface> {
+    for interface in interfaces() {
+        println!("{:?} {}", interface.ips, interface.index);
+    }
+    for interface in interfaces() {
+        if interface.index == index {
+            return Ok(interface);
+        }
+    }
+    bail!("不存在【index={}】的网络接口", index);
 }

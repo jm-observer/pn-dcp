@@ -68,6 +68,10 @@ impl BlockTrait for BlockGetReq {
         len
     }
 
+    fn payload(&self) -> usize {
+        unreachable!()
+    }
+
     fn append_data(&self, data: &mut Vec<u8>) {
         for block in &self.0 {
             block.append_data(data)
@@ -86,7 +90,6 @@ impl TryFrom<BytesWrap> for BlockGetReq {
     fn try_from(value: BytesWrap) -> Result<Self, Self::Error> {
         let mut index = 0usize;
         let mut blocks = Vec::<BlockOptionAndSub>::new();
-        println!("{:?}", value);
         while let Ok(tmp) = value.slice(index..) {
             let one = OptionAndSub::try_from(tmp)?;
             blocks.push(one.into());

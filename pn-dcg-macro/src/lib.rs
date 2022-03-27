@@ -5,7 +5,7 @@ use proc_macro2::{Ident, Literal};
 use quote::{quote, ToTokens, TokenStreamExt};
 use syn::__private::TokenStream2;
 use syn::parse::Parser;
-use syn::{File, ItemStruct, Lit, Meta, NestedMeta, Type};
+use syn::{ItemStruct, Lit, Meta, NestedMeta, Type};
 
 // #[proc_macro_derive(derefmutHead)]
 // pub fn impl_derefmut_head_derive(input: TokenStream) -> TokenStream {
@@ -256,6 +256,7 @@ fn test_resolve_attr() {
 
 #[test]
 fn test_resolve_fn() {
+    use syn::File;
     let attr_stream = quote! {
         impl Deref for PacketIdentReq {
             type Target = ();
