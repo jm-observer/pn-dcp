@@ -1,8 +1,6 @@
 #![allow(dead_code)]
 
 use anyhow::{anyhow, bail, Result};
-use pn_dcp::comm::BytesWrap;
-use pn_dcp::options::{OptionAndSub, OptionAndSubValue};
 use pnet::datalink;
 use pnet::datalink::interfaces;
 use pnet::datalink::Channel::Ethernet;

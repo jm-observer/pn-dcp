@@ -153,11 +153,13 @@ impl InnerIpAddr {
 #[derive(Debug, Eq, PartialEq)]
 pub struct Response(pub OptionAndSub, pub BlockError);
 impl Response {
-    fn len(&self) -> usize {
-        7
+    pub fn len(&self) -> usize {
+        5
     }
-    pub fn append_data(&self, data: &mut Vec<u8>) {
-        data.extend_from_slice(OptionAndSub::Response.to_u8_array().as_slice());
+    pub fn payload(&self) -> u16 {
+        3
+    }
+    pub fn append_value_to_data(&self, data: &mut Vec<u8>) {
         data.extend_from_slice(self.0.to_u8_array().as_slice());
         data.push(self.1 as u8);
     }
@@ -269,7 +271,7 @@ impl OptionAndSubValue {
                 }
             }
             Self::Response(a) => {
-                a.append_data(data);
+                a.append_value_to_data(data);
             }
         }
     }

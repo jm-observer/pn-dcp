@@ -21,8 +21,9 @@ impl PacketSetReq {
         option: OptionAndSubValue,
         qualifier: BlockQualifier,
     ) -> Self {
-        let head = DcgHead::new(dest, source, PnDcpTy::SetReq);
+        let mut head = DcgHead::new(dest, source, PnDcpTy::SetReq);
         let blocks = BlockSet { option, qualifier };
+        head.add_payload_len(blocks.len());
         Self { head, blocks }
     }
 

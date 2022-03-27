@@ -8,7 +8,7 @@ use bytes::Bytes;
 
 pub trait BlockTrait {
     fn len(&self) -> usize;
-    fn payload(&self) -> usize;
+    fn payload(&self) -> u16;
     fn append_data(&self, data: &mut Vec<u8>);
 }
 #[derive(Debug, Eq, PartialEq)]
@@ -19,7 +19,7 @@ impl BlockTrait for BlockPadding {
         1
     }
 
-    fn payload(&self) -> usize {
+    fn payload(&self) -> u16 {
         0
     }
 
@@ -40,7 +40,7 @@ impl BlockTrait for BlockOptionAndSub {
         2
     }
 
-    fn payload(&self) -> usize {
+    fn payload(&self) -> u16 {
         0
     }
 
@@ -70,7 +70,7 @@ impl BlockTrait for BlockIp {
         self.ip.payload_size() + 6
     }
 
-    fn payload(&self) -> usize {
+    fn payload(&self) -> u16 {
         14
     }
 
@@ -105,13 +105,13 @@ impl BlockTrait for BlockSet {
         self.option.payload_size() + 6
     }
 
-    fn payload(&self) -> usize {
-        self.option.payload_size() + 2
+    fn payload(&self) -> u16 {
+        (self.option.payload_size() + 2) as u16
     }
 
     fn append_data(&self, data: &mut Vec<u8>) {
         self.option.append_option_to_data(data);
-        data.extend_from_slice(&14u16.to_be_bytes());
+        data.extend_from_slice(self.payload().to_be_bytes().as_slice());
         data.extend_from_slice(self.qualifier.to_u8_array().as_slice());
         self.option.append_value_to_data(data);
     }
@@ -147,8 +147,8 @@ impl BlockTrait for BlockCommon {
         self.option.payload_size() + 6
     }
 
-    fn payload(&self) -> usize {
-        self.option.payload_size() + 2
+    fn payload(&self) -> u16 {
+        (self.option.payload_size() + 2) as u16
     }
 
     fn append_data(&self, data: &mut Vec<u8>) {
@@ -169,12 +169,13 @@ impl BlockTrait for BlockResp {
         7
     }
 
-    fn payload(&self) -> usize {
+    fn payload(&self) -> u16 {
         3
     }
 
     fn append_data(&self, data: &mut Vec<u8>) {
         data.extend_from_slice(OptionAndSub::Response.to_u8_array().as_slice());
+        data.extend_from_slice(self.payload().to_be_bytes().as_slice());
         data.extend_from_slice(self.0.to_u8_array().as_slice());
         data.push(self.1 as u8);
     }
@@ -216,8 +217,8 @@ impl BlockTrait for BlockCommonWithoutInfo {
         self.0.payload_size() + 4
     }
 
-    fn payload(&self) -> usize {
-        self.0.payload_size()
+    fn payload(&self) -> u16 {
+        self.0.payload_size() as u16
     }
 
     fn append_data(&self, data: &mut Vec<u8>) {

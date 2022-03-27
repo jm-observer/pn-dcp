@@ -68,7 +68,7 @@ impl BlockTrait for BlockGetReq {
         len
     }
 
-    fn payload(&self) -> usize {
+    fn payload(&self) -> u16 {
         unreachable!()
     }
 

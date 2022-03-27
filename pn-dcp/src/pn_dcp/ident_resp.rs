@@ -42,7 +42,7 @@ impl BlockTrait for IdentRespBlocks {
         len
     }
 
-    fn payload(&self) -> usize {
+    fn payload(&self) -> u16 {
         unreachable!()
     }
 
@@ -62,7 +62,7 @@ impl BlockTrait for IdentRespBlock {
         }
     }
 
-    fn payload(&self) -> usize {
+    fn payload(&self) -> u16 {
         match self {
             Self::Block(a) => a.payload(),
             Self::BlockIp(a) => a.payload(),

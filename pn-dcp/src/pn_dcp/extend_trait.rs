@@ -3,6 +3,7 @@ use crate::options::OptionAndSubValue;
 use crate::pn_dcp::get_resp::{GetRespBlock, GetRespBlocks, PacketGetResp};
 use crate::pn_dcp::ident_req::{IdentReqBlock, IdentReqBlocks};
 use crate::pn_dcp::ident_resp::{IdentRespBlock, IdentRespBlocks};
+use crate::pn_dcp::set_resp::{SetRespBlock, SetRespBlocks};
 use crate::pn_dcp::{PnDcg, PnDcpTy};
 use anyhow::bail;
 
@@ -47,7 +48,6 @@ impl From<BlockPadding> for IdentReqBlock {
         Self::Padding(a)
     }
 }
-
 impl From<Vec<IdentReqBlock>> for IdentReqBlocks {
     fn from(val: Vec<IdentReqBlock>) -> Self {
         IdentReqBlocks::from_vec(val)
@@ -72,5 +72,21 @@ impl From<BlockPadding> for IdentRespBlock {
 impl From<Vec<IdentRespBlock>> for IdentRespBlocks {
     fn from(val: Vec<IdentRespBlock>) -> Self {
         Self::from(val)
+    }
+}
+
+impl From<BlockPadding> for SetRespBlock {
+    fn from(a: BlockPadding) -> Self {
+        Self::Padding(a)
+    }
+}
+impl From<BlockResp> for SetRespBlock {
+    fn from(a: BlockResp) -> Self {
+        Self::Response(a)
+    }
+}
+impl From<Vec<SetRespBlock>> for SetRespBlocks {
+    fn from(val: Vec<SetRespBlock>) -> Self {
+        Self(val)
     }
 }

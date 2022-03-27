@@ -1,24 +1,110 @@
 use crate::comm::BytesWrap;
-use crate::dcp_block::{BlockResp, BlockSet};
+use crate::dcp_block::{BlockPadding, BlockResp, BlockSet, BlockTrait};
 use crate::options::{BlockError, OptionAndSub, OptionAndSubValue, Response};
 use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
 use anyhow::bail;
 use pn_dcg_macro::derefmut;
 use pnet::datalink::MacAddr;
+use std::arch::x86_64::_blcfill_u32;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Eq, PartialEq)]
 #[derefmut(head)]
 pub struct PacketSetResp {
     head: DcgHead,
-    blocks: Response,
+    blocks: SetRespBlocks,
+}
+#[derive(Default, Debug, Eq, PartialEq)]
+#[derefmut(0)]
+pub struct SetRespBlocks(pub(crate) Vec<SetRespBlock>);
+
+impl TryFrom<BytesWrap> for SetRespBlocks {
+    type Error = anyhow::Error;
+    fn try_from(value: BytesWrap) -> Result<Self, Self::Error> {
+        let mut index = 0usize;
+        let mut blocks = Vec::<SetRespBlock>::new();
+        while let Ok(tmp) = value.slice(index..) {
+            let option = BlockResp::try_from(tmp.clone())?;
+            let len = option.len();
+            blocks.push(option.into());
+            if len % 2 == 1 {
+                blocks.push(BlockPadding.into());
+                index += 1;
+            }
+            index += len;
+        }
+        Ok(blocks.into())
+    }
+}
+
+impl BlockTrait for SetRespBlocks {
+    fn len(&self) -> usize {
+        let mut len = 0;
+        for block in &self.0 {
+            len += block.len();
+        }
+        len
+    }
+
+    fn payload(&self) -> u16 {
+        unreachable!()
+    }
+
+    fn append_data(&self, data: &mut Vec<u8>) {
+        for block in &self.0 {
+            block.append_data(data)
+        }
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SetRespBlock {
+    Response(BlockResp),
+    Padding(BlockPadding),
+}
+
+impl BlockTrait for SetRespBlock {
+    fn len(&self) -> usize {
+        match self {
+            Self::Response(a) => a.len(),
+            Self::Padding(a) => a.len(),
+        }
+    }
+    fn payload(&self) -> u16 {
+        match self {
+            Self::Response(a) => a.payload(),
+            Self::Padding(a) => a.payload(),
+        }
+    }
+
+    fn append_data(&self, data: &mut Vec<u8>) {
+        match self {
+            Self::Padding(a) => a.append_data(data),
+            Self::Response(a) => a.append_data(data),
+        }
+    }
 }
 
 impl PacketSetResp {
     pub fn new(source: MacAddr, dest: MacAddr, option: OptionAndSub, error: BlockError) -> Self {
-        let head = DcgHead::new(dest, source, PnDcpTy::SetReq);
-        let blocks = Response(option, error);
-        Self { head, blocks }
+        let head = DcgHead::new(dest, source, PnDcpTy::SetRespSuc);
+        let blocks = BlockResp(option, error);
+        let mut resp = Self {
+            head,
+            blocks: SetRespBlocks::default(),
+        };
+        resp.append_block(blocks);
+        resp
+    }
+    fn append_block(&mut self, block: impl Into<SetRespBlock>) {
+        let block = block.into();
+        let block_len = block.len();
+        self.blocks.0.push(block);
+        self.head.add_payload_len(block_len);
+        if block_len % 2 == 1 {
+            self.blocks.0.push(SetRespBlock::Padding(BlockPadding));
+            self.head.add_payload_len(1);
+        }
     }
 
     pub fn to_vec(&self) -> Vec<u8> {
@@ -37,12 +123,8 @@ impl TryFrom<PnDcg> for PacketSetResp {
         if head.ty != PnDcpTy::SetRespSuc {
             bail!("todo");
         }
-        if OptionAndSub::try_from(blocks.slice(0..=1)?)? == OptionAndSub::Response {
-            let blocks = Response::try_from(blocks.slice(4..=6)?)?;
-            Ok(Self { head, blocks })
-        } else {
-            bail!("not a respose")
-        }
+        let blocks = SetRespBlocks::try_from(blocks)?;
+        Ok(Self { blocks, head })
     }
 }
 

@@ -21,20 +21,33 @@ pub struct PacketGetResp {
 }
 
 impl PacketGetResp {
-    pub fn new(get_req: &PacketGetReq) -> Self {
-        let head = DcgHead::new(
-            get_req.source.clone(),
-            get_req.destination.clone(),
-            PnDcpTy::GetRespSuc,
-        );
+    // pub fn new(get_req: &PacketGetReq) -> Self {
+    //     let head = DcgHead::new(
+    //         get_req.source.clone(),
+    //         get_req.destination.clone(),
+    //         PnDcpTy::GetRespSuc,
+    //     );
+    //     Self {
+    //         head,
+    //         blocks: GetRespBlocks::default(),
+    //     }
+    // }
+    pub fn new(source: MacAddr, dest: MacAddr) -> Self {
+        let head = DcgHead::new(dest, source, PnDcpTy::GetRespSuc);
         Self {
             head,
             blocks: GetRespBlocks::default(),
         }
     }
     fn append_block(&mut self, option: impl Into<GetRespBlock>) {
-        self.blocks.push(option.into());
-        self.head.add_payload_len(2);
+        let block = option.into();
+        let block_len = block.len();
+        self.blocks.0.push(block);
+        self.head.add_payload_len(block_len);
+        if block_len % 2 == 1 {
+            self.blocks.0.push(GetRespBlock::Padding(BlockPadding));
+            self.head.add_payload_len(1);
+        }
     }
 
     pub fn append_block_ip(&mut self, ip: InnerIpAddr, info: IpBlockInfo) {
@@ -102,7 +115,7 @@ impl BlockTrait for GetRespBlock {
         }
     }
 
-    fn payload(&self) -> usize {
+    fn payload(&self) -> u16 {
         match self {
             Self::Block(a) => a.payload(),
             Self::Padding(a) => a.payload(),
@@ -130,7 +143,7 @@ impl BlockTrait for GetRespBlocks {
         len
     }
 
-    fn payload(&self) -> usize {
+    fn payload(&self) -> u16 {
         unreachable!()
     }
 
