@@ -1,13 +1,8 @@
 use crate::comm::BytesWrap;
-use crate::dcp_block::{BlockCommon, BlockIp, BlockResp};
-use crate::options::ip::IpBlockInfo;
-use crate::pn_dcp::ident_resp::{IdentRespBlock, PacketIdentResp};
+use crate::packet::ident_resp::PacketIdentResp;
 use anyhow::{bail, Result};
-use bytes::Bytes;
 use std::fmt::{Debug, Formatter};
 use std::net::Ipv4Addr;
-
-pub mod ip;
 
 // static const value_string pn_dcp_block_info[] = {
 // { 0x0000, "RESERVED" },
@@ -87,37 +82,6 @@ impl TryFrom<BytesWrap> for BlockQualifier {
         })
     }
 }
-
-// impl From<[u8; 2]> for BlockQualifier {
-//     fn from(a: [u8; 2]) -> Self {
-//         match a {
-//             USE_TEMPORARY => Self::UseTemporary,
-//             SAVE_PERMANENT => Self::SavePermanent,
-//             b => Self::UnSupport(b),
-//         }
-//     }
-// }
-
-trait OptionBuilder {
-    fn build(self) -> OptionAndSubValue;
-    // fn build_to_ident_resp_default(self, packet: &mut PacketIdentResp) {
-    //     packet.append_block(IdentRespBlock::from(BlockCommon::new(self.build())));
-    // }
-}
-
-// pub struct OptionAndSubValueBuilder;
-// impl OptionAndSubValueBuilder {
-//     pub fn build_device_options() -> DeviceOptionsBuilder {
-//         DeviceOptionsBuilder::default()
-//     }
-//     // pub fn build_ip_addr_options(
-//     //     ip: Ipv4Addr,
-//     //     subnetmask: Ipv4Addr,
-//     //     gateway: Ipv4Addr,
-//     // ) -> IpAddrBuilder {
-//     //     IpAddrBuilder(ip, subnetmask, gateway, IpBlockInfo::default())
-//     // }
-// }
 #[derive(Debug, Eq, PartialEq)]
 pub struct InnerIpAddr(pub Ipv4Addr, pub Ipv4Addr, pub Ipv4Addr);
 impl InnerIpAddr {
@@ -223,10 +187,10 @@ impl OptionAndSubValue {
                 data.extend_from_slice(OptionAndSub::IpAddr.to_u8_array().as_slice())
             }
             // Self::FullIpSuite(_, _, _, _) => 16,
-            Self::ManufacturerSpecific(val) => {
+            Self::ManufacturerSpecific(_) => {
                 data.extend_from_slice(OptionAndSub::ManufacturerSpecific.to_u8_array().as_slice())
             }
-            Self::NameOfStation(val) => {
+            Self::NameOfStation(_) => {
                 data.extend_from_slice(OptionAndSub::NameOfStation.to_u8_array().as_slice())
             }
             Self::DeviceId(_, _) => {
@@ -235,7 +199,7 @@ impl OptionAndSubValue {
             Self::DeviceRole(_, _) => {
                 data.extend_from_slice(OptionAndSub::DeviceRole.to_u8_array().as_slice())
             }
-            Self::DeviceOptions(val) => {
+            Self::DeviceOptions(_) => {
                 data.extend_from_slice(OptionAndSub::DeviceOptions.to_u8_array().as_slice())
             }
             Self::Response(_) => {
@@ -317,12 +281,6 @@ impl OptionAndSubValue {
             }
         })
     }
-    // pub fn init_ip_addr() -> Self {
-    //     todo!()
-    // }
-    // pub fn init_manufacturer_specific(data: Vec<u8>) -> Self {
-    //     Self::ManufacturerSpecific(data)
-    // }
     pub fn payload_size(&self) -> usize {
         match self {
             Self::IpAddr(_) => 12,
@@ -453,19 +411,6 @@ impl OptionAndSub {
         }
     }
 }
-
-// static const value_string pn_dcp_block_error[] = {
-// { 0x00, "Ok" },
-// { 0x01, "Option unsupp." },
-// { 0x02, "Suboption unsupp. or no DataSet avail." },
-// { 0x03, "Suboption not set" },
-// { 0x04, "Resource Error" },
-// { 0x05, "SET not possible by local reasons" },
-// { 0x06, "In operation, SET not possible" },
-// /* all others reserved */
-// { 0, NULL }
-// };
-//
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 #[repr(u8)]
 pub enum BlockError {
@@ -491,6 +436,54 @@ impl TryFrom<u8> for BlockError {
             0x05 => Self::SETNotPossibleByLocalReasons,
             0x06 => Self::InOoperationSETNotPossible,
             _ => bail!("todo"),
+        })
+    }
+}
+
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
+pub enum IpBlockInfo {
+    IpNotSet,
+    IpSet,
+    IpSetByDhcp,
+    IpNotSetConflict,
+    IpSetConflict,
+    IpSetByDhcpConflict,
+    UnSupport([u8; 2]),
+}
+
+impl Default for IpBlockInfo {
+    fn default() -> Self {
+        Self::IpSet
+    }
+}
+
+impl IpBlockInfo {
+    pub fn to_u8_array(&self) -> [u8; 2] {
+        match self {
+            Self::IpNotSet => [0x00, 0x00],
+            Self::IpSet => [0x00, 0x01],
+            Self::IpSetByDhcp => [0x00, 0x02],
+            Self::IpNotSetConflict => [0x00, 0x80],
+            Self::IpSetConflict => [0x00, 0x81],
+            Self::IpSetByDhcpConflict => [0x00, 0x82],
+            Self::UnSupport(data) => data.clone(),
+        }
+    }
+}
+
+impl TryFrom<BytesWrap> for IpBlockInfo {
+    type Error = anyhow::Error;
+    fn try_from(value: BytesWrap) -> Result<Self, Self::Error> {
+        let val = value.slice(0..=1)?;
+        let data = [val.as_ref()[0], val.as_ref()[1]];
+        Ok(match data {
+            [0x00, 0x00] => Self::IpNotSet,
+            [0x00, 0x01] => Self::IpSet,
+            [0x00, 0x02] => Self::IpSetByDhcp,
+            [0x00, 0x80] => Self::IpNotSetConflict,
+            [0x00, 0x81] => Self::IpSetConflict,
+            [0x00, 0x82] => Self::IpSetByDhcpConflict,
+            data => Self::UnSupport(data),
         })
     }
 }

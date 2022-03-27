@@ -2,10 +2,10 @@ mod comm;
 
 use anyhow::Result;
 use comm::*;
-use pn_dcp::options::ip::IpBlockInfo;
+use pn_dcp::options::IpBlockInfo;
 use pn_dcp::options::{BlockError, InnerIpAddr, OptionAndSub};
-use pn_dcp::pn_dcp::get_req::PacketGetReq;
-use pn_dcp::pn_dcp::get_resp::PacketGetResp;
+use pn_dcp::packet::get_req::PacketGetReq;
+use pn_dcp::packet::get_resp::PacketGetResp;
 use std::net::Ipv4Addr;
 
 #[test]

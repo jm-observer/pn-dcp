@@ -1,5 +1,4 @@
 #![allow(dead_code)]
-
 use anyhow::{anyhow, bail, Result};
 use pnet::datalink;
 use pnet::datalink::interfaces;

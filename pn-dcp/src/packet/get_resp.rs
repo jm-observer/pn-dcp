@@ -1,14 +1,9 @@
+use crate::block::{BlockCommon, BlockIp, BlockPadding, BlockResp, BlockTrait};
 use crate::comm::BytesWrap;
-use crate::consts::PROFINET_ETHER_TYPE;
-use crate::dcp_block::{
-    BlockCommon, BlockCommonWithoutInfo, BlockIp, BlockPadding, BlockResp, BlockTrait,
-};
-use crate::options::ip::IpBlockInfo;
+use crate::options::IpBlockInfo;
 use crate::options::{BlockError, BlockInfo, InnerIpAddr, OptionAndSub, OptionAndSubValue};
-use crate::pn_dcp::get_req::PacketGetReq;
-use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
+use crate::packet::{DcpHead, PnDcp, PnDcpTy};
 use anyhow::{bail, Result};
-use bytes::Bytes;
 use pn_dcg_macro::derefmut;
 use pnet::util::MacAddr;
 use std::ops::{Deref, DerefMut};
@@ -16,7 +11,7 @@ use std::ops::{Deref, DerefMut};
 #[derive(Debug, Eq, PartialEq)]
 #[derefmut(head)]
 pub struct PacketGetResp {
-    head: DcgHead,
+    head: DcpHead,
     blocks: GetRespBlocks,
 }
 
@@ -33,7 +28,7 @@ impl PacketGetResp {
     //     }
     // }
     pub fn new(source: MacAddr, dest: MacAddr) -> Self {
-        let head = DcgHead::new(dest, source, PnDcpTy::GetRespSuc);
+        let head = DcpHead::new(dest, source, PnDcpTy::GetRespSuc);
         Self {
             head,
             blocks: GetRespBlocks::default(),
@@ -68,10 +63,10 @@ impl PacketGetResp {
     }
 }
 
-impl TryFrom<PnDcg> for PacketGetResp {
+impl TryFrom<PnDcp> for PacketGetResp {
     type Error = anyhow::Error;
-    fn try_from(dcg: PnDcg) -> Result<Self, Self::Error> {
-        let PnDcg { head, blocks } = dcg;
+    fn try_from(dcg: PnDcp) -> Result<Self, Self::Error> {
+        let PnDcp { head, blocks } = dcg;
         if head.ty != PnDcpTy::GetRespSuc {
             bail!("todo");
         }
@@ -84,7 +79,7 @@ impl TryFrom<&[u8]> for PacketGetResp {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let dcg = PnDcg::try_from(value)?;
+        let dcg = PnDcp::try_from(value)?;
         PacketGetResp::try_from(dcg)
     }
 }
@@ -98,12 +93,7 @@ pub enum GetRespBlock {
 }
 #[derive(Debug, Eq, PartialEq, Default)]
 #[derefmut(0)]
-pub struct GetRespBlocks(Vec<GetRespBlock>);
-impl GetRespBlocks {
-    pub fn from_vec(item: Vec<GetRespBlock>) -> Self {
-        Self(item)
-    }
-}
+pub struct GetRespBlocks(pub(crate) Vec<GetRespBlock>);
 
 impl BlockTrait for GetRespBlock {
     fn len(&self) -> usize {

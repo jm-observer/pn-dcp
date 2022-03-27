@@ -1,7 +1,7 @@
 use anyhow::{bail, Result};
 use pnet::datalink;
 use pnet::datalink::Channel::Ethernet;
-use pnet::datalink::{interfaces, Config, NetworkInterface};
+use pnet::datalink::Config;
 
 pub mod comm;
 use comm::*;

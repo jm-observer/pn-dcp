@@ -1,11 +1,12 @@
-use crate::dcp_block::{BlockCommon, BlockCommonWithoutInfo, BlockIp, BlockPadding, BlockResp};
+use crate::block::{
+    BlockCommon, BlockCommonWithoutInfo, BlockIp, BlockPadding, BlockResp, BlockSet,
+};
 use crate::options::OptionAndSubValue;
-use crate::pn_dcp::get_resp::{GetRespBlock, GetRespBlocks, PacketGetResp};
-use crate::pn_dcp::ident_req::{IdentReqBlock, IdentReqBlocks};
-use crate::pn_dcp::ident_resp::{IdentRespBlock, IdentRespBlocks};
-use crate::pn_dcp::set_resp::{SetRespBlock, SetRespBlocks};
-use crate::pn_dcp::{PnDcg, PnDcpTy};
-use anyhow::bail;
+use crate::packet::get_resp::{GetRespBlock, GetRespBlocks};
+use crate::packet::ident_req::{IdentReqBlock, IdentReqBlocks};
+use crate::packet::ident_resp::{IdentRespBlock, IdentRespBlocks};
+use crate::packet::set_req::{SetReqBlock, SetReqBlocks};
+use crate::packet::set_resp::{SetRespBlock, SetRespBlocks};
 
 impl From<BlockCommon> for GetRespBlock {
     fn from(a: BlockCommon) -> Self {
@@ -29,7 +30,7 @@ impl From<BlockResp> for GetRespBlock {
 }
 impl From<Vec<GetRespBlock>> for GetRespBlocks {
     fn from(val: Vec<GetRespBlock>) -> Self {
-        GetRespBlocks::from_vec(val)
+        GetRespBlocks(val)
     }
 }
 
@@ -87,6 +88,22 @@ impl From<BlockResp> for SetRespBlock {
 }
 impl From<Vec<SetRespBlock>> for SetRespBlocks {
     fn from(val: Vec<SetRespBlock>) -> Self {
+        Self(val)
+    }
+}
+
+impl From<BlockPadding> for SetReqBlock {
+    fn from(a: BlockPadding) -> Self {
+        Self::Padding(a)
+    }
+}
+impl From<BlockSet> for SetReqBlock {
+    fn from(a: BlockSet) -> Self {
+        Self::Set(a)
+    }
+}
+impl From<Vec<SetReqBlock>> for SetReqBlocks {
+    fn from(val: Vec<SetReqBlock>) -> Self {
         Self(val)
     }
 }

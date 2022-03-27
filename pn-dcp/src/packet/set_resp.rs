@@ -1,17 +1,16 @@
+use crate::block::{BlockPadding, BlockResp, BlockTrait};
 use crate::comm::BytesWrap;
-use crate::dcp_block::{BlockPadding, BlockResp, BlockSet, BlockTrait};
-use crate::options::{BlockError, OptionAndSub, OptionAndSubValue, Response};
-use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
+use crate::options::{BlockError, OptionAndSub};
+use crate::packet::{DcpHead, PnDcp, PnDcpTy};
 use anyhow::bail;
 use pn_dcg_macro::derefmut;
 use pnet::datalink::MacAddr;
-use std::arch::x86_64::_blcfill_u32;
 use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, Eq, PartialEq)]
 #[derefmut(head)]
 pub struct PacketSetResp {
-    head: DcgHead,
+    head: DcpHead,
     blocks: SetRespBlocks,
 }
 #[derive(Default, Debug, Eq, PartialEq)]
@@ -87,7 +86,7 @@ impl BlockTrait for SetRespBlock {
 
 impl PacketSetResp {
     pub fn new(source: MacAddr, dest: MacAddr, option: OptionAndSub, error: BlockError) -> Self {
-        let head = DcgHead::new(dest, source, PnDcpTy::SetRespSuc);
+        let head = DcpHead::new(dest, source, PnDcpTy::SetRespSuc);
         let blocks = BlockResp(option, error);
         let mut resp = Self {
             head,
@@ -115,11 +114,11 @@ impl PacketSetResp {
     }
 }
 
-impl TryFrom<PnDcg> for PacketSetResp {
+impl TryFrom<PnDcp> for PacketSetResp {
     type Error = anyhow::Error;
 
-    fn try_from(dcg: PnDcg) -> Result<Self, Self::Error> {
-        let PnDcg { head, blocks } = dcg;
+    fn try_from(dcg: PnDcp) -> Result<Self, Self::Error> {
+        let PnDcp { head, blocks } = dcg;
         if head.ty != PnDcpTy::SetRespSuc {
             bail!("todo");
         }
@@ -132,7 +131,7 @@ impl TryFrom<&[u8]> for PacketSetResp {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let dcg = PnDcg::try_from(value)?;
+        let dcg = PnDcp::try_from(value)?;
         PacketSetResp::try_from(dcg)
     }
 }

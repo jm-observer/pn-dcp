@@ -3,8 +3,8 @@ mod comm;
 use anyhow::Result;
 use comm::*;
 use pn_dcp::options::{BlockError, BlockQualifier, InnerIpAddr, OptionAndSub};
-use pn_dcp::pn_dcp::set_req::PacketSetReq;
-use pn_dcp::pn_dcp::set_resp::PacketSetResp;
+use pn_dcp::packet::set_req::PacketSetReq;
+use pn_dcp::packet::set_resp::PacketSetResp;
 use std::net::Ipv4Addr;
 
 #[test]

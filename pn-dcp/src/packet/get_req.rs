@@ -1,7 +1,7 @@
+use crate::block::{BlockOptionAndSub, BlockTrait};
 use crate::comm::BytesWrap;
-use crate::dcp_block::{BlockOptionAndSub, BlockPadding, BlockTrait};
 use crate::options::OptionAndSub;
-use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
+use crate::packet::{DcpHead, PnDcp, PnDcpTy};
 use anyhow::bail;
 use pn_dcg_macro::derefmut;
 use pnet::util::MacAddr;
@@ -9,13 +9,13 @@ use std::ops::{Deref, DerefMut};
 #[derive(Debug, Eq, PartialEq)]
 #[derefmut(head)]
 pub struct PacketGetReq {
-    head: DcgHead,
+    head: DcpHead,
     blocks: BlockGetReq,
 }
 
 impl PacketGetReq {
     pub fn new(source: MacAddr, dest: MacAddr) -> Self {
-        let head = DcgHead::new(dest, source, PnDcpTy::GetReq);
+        let head = DcpHead::new(dest, source, PnDcpTy::GetReq);
         Self {
             head,
             blocks: BlockGetReq::default(),
@@ -33,11 +33,11 @@ impl PacketGetReq {
     }
 }
 
-impl TryFrom<PnDcg> for PacketGetReq {
+impl TryFrom<PnDcp> for PacketGetReq {
     type Error = anyhow::Error;
 
-    fn try_from(dcg: PnDcg) -> Result<Self, Self::Error> {
-        let PnDcg { head, blocks } = dcg;
+    fn try_from(dcg: PnDcp) -> Result<Self, Self::Error> {
+        let PnDcp { head, blocks } = dcg;
         if head.ty != PnDcpTy::GetReq {
             bail!("todo");
         }
@@ -50,7 +50,7 @@ impl TryFrom<&[u8]> for PacketGetReq {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let dcg = PnDcg::try_from(value)?;
+        let dcg = PnDcp::try_from(value)?;
         PacketGetReq::try_from(dcg)
     }
 }

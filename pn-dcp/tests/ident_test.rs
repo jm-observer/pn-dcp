@@ -2,14 +2,11 @@ mod comm;
 
 use anyhow::Result;
 use comm::*;
-use pn_dcp::comm::BytesWrap;
-use pn_dcp::options::ip::IpBlockInfo;
+use pn_dcp::options::IpBlockInfo;
 use pn_dcp::options::OptionAndSub::{AliasName, DeviceOptions, DeviceRole, IpAddr, MarAddr};
-use pn_dcp::options::{
-    BlockInfo, DeviceOptionsBuilder, InnerIpAddr, OptionAndSub, OptionAndSubValue,
-};
-use pn_dcp::pn_dcp::ident_req::PacketIdentReq;
-use pn_dcp::pn_dcp::ident_resp::PacketIdentResp;
+use pn_dcp::options::{DeviceOptionsBuilder, InnerIpAddr, OptionAndSub, OptionAndSubValue};
+use pn_dcp::packet::ident_req::PacketIdentReq;
+use pn_dcp::packet::ident_resp::PacketIdentResp;
 use pnet::util::MacAddr;
 use std::net::Ipv4Addr;
 

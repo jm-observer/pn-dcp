@@ -1,10 +1,9 @@
 use crate::comm::BytesWrap;
-use crate::options::ip::IpBlockInfo;
+use crate::options::IpBlockInfo;
 use crate::options::{
     BlockError, BlockInfo, BlockQualifier, InnerIpAddr, OptionAndSub, OptionAndSubValue,
 };
 use anyhow::{bail, Result};
-use bytes::Bytes;
 
 pub trait BlockTrait {
     fn len(&self) -> usize;
@@ -184,8 +183,6 @@ impl BlockTrait for BlockResp {
 impl TryFrom<BytesWrap> for BlockResp {
     type Error = anyhow::Error;
     fn try_from(value: BytesWrap) -> Result<Self, Self::Error> {
-        let val = value.slice(2..)?;
-        let len = Len::try_from(val.as_ref())?;
         let ty = OptionAndSub::try_from(value.slice(4..=5)?)?;
         let val = value.slice(6..=6)?.as_ref()[0];
         Ok(Self(ty, BlockError::try_from(val)?))

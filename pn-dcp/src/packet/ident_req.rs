@@ -1,11 +1,8 @@
+use crate::block::{BlockCommonWithoutInfo, BlockPadding, BlockTrait};
 use crate::comm::BytesWrap;
-use crate::consts::PROFINET_ETHER_TYPE;
-use crate::dcp_block::{BlockCommonWithoutInfo, BlockPadding, BlockTrait};
 use crate::options::OptionAndSubValue;
-use crate::pn_dcp::ident_req::IdentReqBlock::Padding;
-use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
+use crate::packet::{DcpHead, PnDcp, PnDcpTy};
 use anyhow::{bail, Result};
-use bytes::Bytes;
 use pn_dcg_macro::derefmut;
 use pnet::util::MacAddr;
 use std::ops::{Deref, DerefMut};
@@ -99,14 +96,14 @@ impl TryFrom<BytesWrap> for IdentReqBlocks {
 #[derive(Debug, Eq, PartialEq)]
 #[derefmut(head)]
 pub struct PacketIdentReq {
-    head: DcgHead,
+    head: DcpHead,
     blocks: IdentReqBlocks,
 }
 
 impl PacketIdentReq {
     pub fn new(source: MacAddr) -> Self {
         let destination = MacAddr::new(0x01, 0x0e, 0xcf, 0x00, 0x00, 0x00);
-        let head = DcgHead::new(destination, source, PnDcpTy::IdentReq);
+        let head = DcpHead::new(destination, source, PnDcpTy::IdentReq);
         Self {
             head,
             blocks: IdentReqBlocks::default(),
@@ -134,11 +131,11 @@ impl PacketIdentReq {
     }
 }
 
-impl TryFrom<PnDcg> for PacketIdentReq {
+impl TryFrom<PnDcp> for PacketIdentReq {
     type Error = anyhow::Error;
 
-    fn try_from(dcg: PnDcg) -> Result<Self, Self::Error> {
-        let PnDcg { head, blocks } = dcg;
+    fn try_from(dcg: PnDcp) -> Result<Self, Self::Error> {
+        let PnDcp { head, blocks } = dcg;
         if head.ty != PnDcpTy::IdentReq {
             bail!("todo");
         }
@@ -151,7 +148,7 @@ impl TryFrom<&[u8]> for PacketIdentReq {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let dcg = PnDcg::try_from(value)?;
+        let dcg = PnDcp::try_from(value)?;
         PacketIdentReq::try_from(dcg)
     }
 }

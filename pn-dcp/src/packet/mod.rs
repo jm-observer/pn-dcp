@@ -6,61 +6,11 @@ pub mod ident_resp;
 pub mod set_req;
 pub mod set_resp;
 
-use anyhow::{anyhow, bail, Result};
-use bytes::Bytes;
-use pnet::packet::ethernet::EtherType;
-// use pnet::packet::PacketSize;
-use crate::comm::{slice_copy_to_vec, BytesWrap};
-use crate::consts::PROFINET_ETHER_TYPE;
-use pnet::util::{MacAddr, Octets};
-use pnet_macros::packet;
-use pnet_macros_support::packet::PrimitiveValues;
-use pnet_macros_support::types::{u16be, u32be};
+use crate::comm::BytesWrap;
+use crate::comm::PROFINET_ETHER_TYPE;
+use anyhow::{bail, Result};
+use pnet::util::MacAddr;
 
-// #[packet]
-// pub struct PnDcg {
-//     #[construct_with(u8, u8, u8, u8, u8, u8)]
-//     pub destination: MacAddr,
-//     #[construct_with(u8, u8, u8, u8, u8, u8)]
-//     pub source: MacAddr,
-//     #[construct_with(u16)]
-//     pub ethertype: EtherType,
-//     #[construct_with(u8, u8)]
-//     pub frame_id: DoubleU8s,
-//     pub service_id: u8,
-//     pub service_type: u8,
-//     pub xid: u32be,
-//     #[construct_with(u8, u8)]
-//     pub reserved: DoubleU8s,
-//     pub dcp_len: u16be,
-//     #[payload]
-//     #[length = "dcp_len"]
-//     pub payload: Vec<u8>,
-// }
-
-// fn check(dcf: &PnDcgPacket) {
-//     dcf.get_reserved();
-// }
-
-// #[derive(PartialEq, Eq, Clone, Copy, Default, Hash, Ord, PartialOrd, Debug)]
-// pub struct DoubleU8s(pub u8, pub u8);
-//
-// impl DoubleU8s {
-//     pub fn new(a: u8, b: u8) -> Self {
-//         Self(a, b)
-//     }
-//
-//     pub fn to_u8s(&self) -> [u8; 2] {
-//         [self.0, self.1]
-//     }
-// }
-// impl PrimitiveValues for DoubleU8s {
-//     type T = (u8, u8);
-//
-//     fn to_primitive_values(&self) -> Self::T {
-//         (self.0, self.1)
-//     }
-// }
 #[derive(Debug, Copy, Clone, Eq, PartialEq)]
 pub enum PnDcpTy {
     HelloReq,       // 0xfe, 0xfc, 0x06, 0x00
@@ -114,94 +64,16 @@ impl TryFrom<[u8; 4]> for PnDcpTy {
         }
     }
 }
-pub struct PnDcgBuilder {
-    des: Result<MacAddr>,
-    src: Result<MacAddr>,
-    ty: PnDcpTy,
-    reserved: [u8; 2],
-    xid: Result<[u8; 4]>,
-    payload: Result<Vec<u8>>,
-}
-impl PnDcgBuilder {
-    pub fn new(ty: PnDcpTy) -> Self {
-        Self {
-            ty,
-            des: Err(anyhow!("todo")),
-            src: Err(anyhow!("todo")),
-            xid: Err(anyhow!("todo")),
-            payload: Err(anyhow!("todo")),
-            reserved: [0, 0],
-        }
-    }
-    pub fn build(self) -> Result<Vec<u8>> {
-        let Self {
-            des,
-            src,
-            xid,
-            payload,
-            ty,
-            reserved,
-        } = self;
-        let des = des?;
-        let src = src?;
-        let xid = xid?;
-        let payload = payload?;
-        let mut data = Vec::with_capacity(payload.len() + 26);
-        slice_copy_to_vec(&mut data, &des.octets());
-        slice_copy_to_vec(&mut data, &src.octets());
-        slice_copy_to_vec(&mut data, &PROFINET_ETHER_TYPE.0.octets());
-
-        slice_copy_to_vec(&mut data, &ty.to_u8_array());
-        slice_copy_to_vec(&mut data, &xid);
-        slice_copy_to_vec(&mut data, &reserved);
-        slice_copy_to_vec(&mut data, &(payload.len() as u16).to_be_bytes());
-        slice_copy_to_vec(&mut data, payload.as_slice());
-        Ok(data)
-    }
-    pub fn set_response_delay(mut self, response_delay: u16) -> Self {
-        self.reserved = response_delay.to_be_bytes();
-        self
-    }
-    pub fn set_reserved(mut self, reserved: [u8; 2]) -> Self {
-        self.reserved = reserved;
-        self
-    }
-    pub fn set_des(mut self, des: MacAddr) -> Self {
-        self.des = Ok(des);
-        self
-    }
-    pub fn set_des_array(mut self, a: [u8; 6]) -> Self {
-        self.des = Ok(MacAddr::new(a[0], a[1], a[2], a[3], a[4], a[5]));
-        self
-    }
-    pub fn set_src_array(mut self, a: [u8; 6]) -> Self {
-        self.src = Ok(MacAddr::new(a[0], a[1], a[2], a[3], a[4], a[5]));
-        self
-    }
-    pub fn set_src(mut self, src: MacAddr) -> Self {
-        self.src = Ok(src);
-        self
-    }
-    pub fn set_payload(mut self, payload: Vec<u8>) -> Self {
-        self.payload = Ok(payload);
-        self
-    }
-    pub fn set_xid(mut self, xid: [u8; 4]) -> Self {
-        self.xid = Ok(xid);
-        self
-    }
-}
-pub struct PnDcg {
-    // data: Bytes,
-    pub head: DcgHead,
+pub struct PnDcp {
+    pub head: DcpHead,
     pub blocks: BytesWrap,
 }
 
-impl TryFrom<&[u8]> for PnDcg {
+impl TryFrom<&[u8]> for PnDcp {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        let head = DcgHead::try_from(value)?;
+        let head = DcpHead::try_from(value)?;
         if let Some(blocks_data) = value.get(26..) {
             let blocks: BytesWrap = blocks_data.to_vec().into();
             return Ok(Self { head, blocks });
@@ -211,7 +83,7 @@ impl TryFrom<&[u8]> for PnDcg {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct DcgHead {
+pub struct DcpHead {
     pub destination: MacAddr,
     pub source: MacAddr,
     pub ty: PnDcpTy,
@@ -220,7 +92,7 @@ pub struct DcgHead {
     pub payload_len: usize,
 }
 
-impl DcgHead {
+impl DcpHead {
     pub fn append_data(&self, data: &mut Vec<u8>) {
         data.extend_from_slice(self.destination.octets().as_slice());
         data.extend_from_slice(self.source.octets().as_slice());
@@ -254,7 +126,7 @@ impl DcgHead {
     }
 }
 
-impl TryFrom<&[u8]> for DcgHead {
+impl TryFrom<&[u8]> for DcpHead {
     type Error = anyhow::Error;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
@@ -274,7 +146,7 @@ impl TryFrom<&[u8]> for DcgHead {
             let source = MacAddr::new(value[6], value[7], value[8], value[9], value[10], value[11]);
             let xid: [u8; 4] = [value[18], value[19], value[20], value[21]];
             let reserved_or_delay: [u8; 2] = [value[22], value[23]];
-            return Ok(DcgHead {
+            return Ok(DcpHead {
                 destination,
                 source,
                 ty,
@@ -286,11 +158,6 @@ impl TryFrom<&[u8]> for DcgHead {
         bail!("长度不足，非PnDcg包");
     }
 }
-
-// pub const FRAME_ID_DCP_HELLO: FrameId = FrameId(0xfe, 0xfc);
-// pub const FRAME_ID_DCP_GETORSET: FrameId = FrameId(0xfe, 0xfd);
-// pub const FRAME_ID_DCP_IDENT_REQ: FrameId = FrameId(0xfe, 0xfe);
-// pub const FRAME_ID_DCP_IDENT_RES: FrameId = FrameId(0xfe, 0xff);
 
 pub enum FrameId {
     Hello,
@@ -310,20 +177,3 @@ impl From<[u8; 2]> for FrameId {
         }
     }
 }
-
-// pub const SERVICE_ID_GET: u8 = 0x03;
-// pub const SERVICE_ID_SET: u8 = 0x04;
-// pub const SERVICE_ID_IDENTIFY: u8 = 0x05;
-// pub const SERVICE_ID_HELLO: u8 = 0x06;
-
-// #[repr(u8)]
-// pub enum ServiceId {
-//     Get = 0x03,
-//     Set = 0x04,
-//     Identify = 0x05,
-//     Hello = 0x06,
-// }
-
-// pub const SERVICE_TYPE_REQUEST: u8 = 0x00;
-// pub const SERVICE_TYPE_RESPONSE_SUCCESS: u8 = 0x01;
-// pub const SERVICE_TYPE_RESPONSE_UNSUPPORTED: u8 = 0x05;
