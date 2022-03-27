@@ -1,7 +1,8 @@
 use crate::comm::BytesWrap;
 use crate::consts::PROFINET_ETHER_TYPE;
 use crate::dcp_block::{BlockCommon, BlockCommonWithoutInfo, BlockIp, BlockPadding, BlockTrait};
-use crate::options::{OptionAndSub, OptionAndSubValue};
+use crate::options::ip::IpBlockInfo;
+use crate::options::{BlockInfo, IpAddr, OptionAndSub, OptionAndSubValue};
 use crate::pn_dcp::ident_req::PacketIdentReq;
 use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
 use anyhow::{bail, Result};
@@ -16,6 +17,13 @@ pub enum IdentRespBlock {
     BlockIp(BlockIp),
     Padding(BlockPadding),
 }
+
+impl IdentRespBlock {
+    pub fn add_to_packet(self, packet: &mut PacketIdentResp) {
+        packet.append_block(self);
+    }
+}
+
 #[derive(Debug, Eq, PartialEq, Default)]
 #[derefmut(0)]
 pub struct IdentRespBlocks(Vec<IdentRespBlock>);
@@ -105,7 +113,14 @@ pub struct PacketIdentResp {
 }
 
 impl PacketIdentResp {
-    pub fn new(source: MacAddr, ident_req: PacketIdentReq) -> Self {
+    pub fn new(source: MacAddr, dest: MacAddr) -> Self {
+        let head = DcgHead::new(dest, source, PnDcpTy::IdentRespSuc);
+        Self {
+            head,
+            blocks: IdentRespBlocks::default(),
+        }
+    }
+    pub fn from_req(source: MacAddr, ident_req: PacketIdentReq) -> Self {
         let mut head = DcgHead::new(ident_req.source.clone(), source, PnDcpTy::IdentRespSuc);
         head.set_xid(ident_req.xid);
         Self {
@@ -113,7 +128,7 @@ impl PacketIdentResp {
             blocks: IdentRespBlocks::default(),
         }
     }
-    pub fn append_block(&mut self, block: impl Into<IdentRespBlock>) {
+    fn append_block(&mut self, block: impl Into<IdentRespBlock>) {
         let block = block.into();
         let block_len = block.len();
         self.blocks.0.push(block);
@@ -122,6 +137,12 @@ impl PacketIdentResp {
             self.blocks.0.push(IdentRespBlock::Padding(BlockPadding));
             self.head.add_payload_len(1);
         }
+    }
+    pub fn append_block_ip(&mut self, ip: IpAddr, info: IpBlockInfo) {
+        self.append_block(BlockIp { ip, info })
+    }
+    pub fn append_block_common(&mut self, option: OptionAndSubValue, info: BlockInfo) {
+        self.append_block(BlockCommon { option, info })
     }
     pub fn to_vec(&self) -> Vec<u8> {
         let mut data = Vec::with_capacity(self.head.payload_len + 26);

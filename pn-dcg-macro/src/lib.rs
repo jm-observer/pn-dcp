@@ -5,7 +5,7 @@ use proc_macro2::{Ident, Literal};
 use quote::{quote, ToTokens, TokenStreamExt};
 use syn::__private::TokenStream2;
 use syn::parse::Parser;
-use syn::{ItemStruct, Lit, Meta, NestedMeta, Type};
+use syn::{File, ItemStruct, Lit, Meta, NestedMeta, Type};
 
 // #[proc_macro_derive(derefmutHead)]
 // pub fn impl_derefmut_head_derive(input: TokenStream) -> TokenStream {
@@ -253,5 +253,34 @@ fn test_resolve_attr() {
         }
     }
 }
-// 根据属性，解析对应的字段的类型
-// 生成impl实现
+
+#[test]
+fn test_resolve_fn() {
+    let attr_stream = quote! {
+        impl Deref for PacketIdentReq {
+            type Target = ();
+            fn deref(&self) -> &Self::Target {
+                todo!()
+            }
+        }
+    };
+    let file: File = syn::parse2(attr_stream).unwrap();
+    println!("{:?}", file);
+    // let attr_vals = AttrAlisa::parse_terminated.parse2(attr_stream).unwrap();
+    // // println!("{:?}", attr_vals);
+    // for attr_val in attr_vals.iter() {
+    //     match attr_val {
+    //         NestedMeta::Meta(Meta::Path(meta)) => {
+    //             println!("Meta {:?}", meta);
+    //             println!("Meta {:?}", meta.get_ident().unwrap())
+    //         }
+    //         NestedMeta::Lit(Lit::Int(lit)) => {
+    //             println!("Lit::Int {:?}", lit.base10_parse::<usize>().unwrap());
+    //             println!("Lit::Int {:?}", lit)
+    //         }
+    //         a => {
+    //             println!("other {:?}", a)
+    //         }
+    //     }
+    // }
+}

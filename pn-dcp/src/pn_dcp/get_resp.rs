@@ -3,7 +3,8 @@ use crate::consts::PROFINET_ETHER_TYPE;
 use crate::dcp_block::{
     BlockCommon, BlockCommonWithoutInfo, BlockIp, BlockPadding, BlockResp, BlockTrait,
 };
-use crate::options::{OptionAndSub, OptionAndSubValue};
+use crate::options::ip::IpBlockInfo;
+use crate::options::{BlockError, BlockInfo, IpAddr, OptionAndSub, OptionAndSubValue};
 use crate::pn_dcp::get_req::PacketGetReq;
 use crate::pn_dcp::{DcgHead, PnDcg, PnDcpTy};
 use anyhow::{bail, Result};
@@ -31,10 +32,21 @@ impl PacketGetResp {
             blocks: GetRespBlocks::default(),
         }
     }
-    pub fn append_block(&mut self, option: impl Into<GetRespBlock>) {
+    fn append_block(&mut self, option: impl Into<GetRespBlock>) {
         self.blocks.push(option.into());
         self.head.add_payload_len(2);
     }
+
+    pub fn append_block_ip(&mut self, ip: IpAddr, info: IpBlockInfo) {
+        self.append_block(BlockIp { ip, info })
+    }
+    pub fn append_block_common(&mut self, option: OptionAndSubValue, info: BlockInfo) {
+        self.append_block(BlockCommon { option, info })
+    }
+    pub fn append_block_resp(&mut self, option: OptionAndSub, error: BlockError) {
+        self.append_block(BlockResp(option, error))
+    }
+
     pub fn to_vec(&self) -> Vec<u8> {
         let mut data = Vec::with_capacity(self.head.payload_len + 26);
         self.head.append_data(&mut data);

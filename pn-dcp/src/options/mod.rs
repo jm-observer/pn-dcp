@@ -1,5 +1,7 @@
 use crate::comm::BytesWrap;
+use crate::dcp_block::{BlockCommon, BlockIp, BlockResp};
 use crate::options::ip::IpBlockInfo;
+use crate::pn_dcp::ident_resp::{IdentRespBlock, PacketIdentResp};
 use anyhow::{bail, Result};
 use bytes::Bytes;
 use std::fmt::{Debug, Formatter};
@@ -96,10 +98,96 @@ impl TryFrom<BytesWrap> for BlockQualifier {
 //     }
 // }
 
+trait OptionBuilder {
+    fn build(self) -> OptionAndSubValue;
+    // fn build_to_ident_resp_default(self, packet: &mut PacketIdentResp) {
+    //     packet.append_block(IdentRespBlock::from(BlockCommon::new(self.build())));
+    // }
+}
+
+pub struct OptionAndSubValueBuilder;
+impl OptionAndSubValueBuilder {
+    pub fn build_device_options() -> DeviceOptionsBuilder {
+        DeviceOptionsBuilder::default()
+    }
+    // pub fn build_ip_addr_options(
+    //     ip: Ipv4Addr,
+    //     subnetmask: Ipv4Addr,
+    //     gateway: Ipv4Addr,
+    // ) -> IpAddrBuilder {
+    //     IpAddrBuilder(ip, subnetmask, gateway, IpBlockInfo::default())
+    // }
+}
+#[derive(Debug, Eq, PartialEq)]
+pub struct IpAddr(pub Ipv4Addr, pub Ipv4Addr, pub Ipv4Addr);
+impl IpAddr {
+    pub fn new(data: BytesWrap) -> Result<Self> {
+        let val = data.slice(0..=11)?;
+        let val = val.as_ref();
+        Ok(Self(
+            Ipv4Addr::new(val[0], val[1], val[2], val[3]),
+            Ipv4Addr::new(val[4], val[5], val[6], val[7]),
+            Ipv4Addr::new(val[8], val[9], val[10], val[11]),
+        ))
+    }
+    pub fn append_value_to_data(&self, data: &mut Vec<u8>) {
+        data.extend_from_slice(self.0.octets().as_slice());
+        data.extend_from_slice(self.1.octets().as_slice());
+        data.extend_from_slice(self.2.octets().as_slice());
+    }
+    pub fn payload_size(&self) -> usize {
+        12
+    }
+    pub fn to_option(self) -> OptionAndSubValue {
+        OptionAndSubValue::IpAddr(self)
+    }
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub struct Response(pub OptionAndSub, pub BlockError);
+impl Response {
+    fn len(&self) -> usize {
+        7
+    }
+    pub fn append_data(&self, data: &mut Vec<u8>) {
+        data.extend_from_slice(OptionAndSub::Response.to_u8_array().as_slice());
+        data.extend_from_slice(self.0.to_u8_array().as_slice());
+        data.push(self.1 as u8);
+    }
+    pub fn to_option(self) -> OptionAndSubValue {
+        OptionAndSubValue::Response(self)
+    }
+}
+
+impl TryFrom<BytesWrap> for Response {
+    type Error = anyhow::Error;
+    fn try_from(data: BytesWrap) -> Result<Self, Self::Error> {
+        let val = data.slice(0..=2)?;
+        let ref_u8 = val.as_ref();
+        Ok(Self(
+            OptionAndSub::try_from(val.clone())?,
+            BlockError::try_from(ref_u8[2])?,
+        ))
+    }
+}
+
+#[derive(Default)]
+pub struct DeviceOptionsBuilder(Vec<OptionAndSub>);
+
+impl DeviceOptionsBuilder {
+    pub fn append_option(mut self, option: OptionAndSub) -> Self {
+        self.0.push(option);
+        self
+    }
+    fn build(self) -> OptionAndSubValue {
+        OptionAndSubValue::DeviceOptions(self.0)
+    }
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub enum OptionAndSubValue {
     // MarAddr([u8; 6]),
-    IpAddr(Ipv4Addr, Ipv4Addr, Ipv4Addr),
+    IpAddr(IpAddr),
     // FullIpSuite(Ipv4Addr, Ipv4Addr, Ipv4Addr, Ipv4Addr),
     ManufacturerSpecific(BytesWrap),
     NameOfStation(BytesWrap),
@@ -110,19 +198,19 @@ pub enum OptionAndSubValue {
     // StartTransaction,
     // EndTransaction,
     // Signal,
-    Response(OptionAndSub, BlockError), // not support yet
-                                        // ResetFactory,
-                                        // DevicecInitiative,
-                                        // All,
-                                        // DHCP(u8),
-                                        // LLDP(u8),
-                                        // Other((u8, u8)),
+    Response(Response), // not support yet
+                        // ResetFactory,
+                        // DevicecInitiative,
+                        // All,
+                        // DHCP(u8),
+                        // LLDP(u8),
+                        // Other((u8, u8)),
 }
 
 impl OptionAndSubValue {
     pub fn append_option_to_data(&self, data: &mut Vec<u8>) {
         match self {
-            Self::IpAddr(_, _, _) => {
+            Self::IpAddr(_) => {
                 data.extend_from_slice(OptionAndSub::IpAddr.to_u8_array().as_slice())
             }
             // Self::FullIpSuite(_, _, _, _) => 16,
@@ -141,17 +229,17 @@ impl OptionAndSubValue {
             Self::DeviceOptions(val) => {
                 data.extend_from_slice(OptionAndSub::DeviceOptions.to_u8_array().as_slice())
             }
-            Self::Response(_, _) => {
+            Self::Response(_) => {
                 data.extend_from_slice(OptionAndSub::Response.to_u8_array().as_slice())
             }
         }
     }
     pub fn append_value_to_data(&self, data: &mut Vec<u8>) {
         match self {
-            Self::IpAddr(a, b, c) => {
-                data.extend_from_slice(a.octets().as_slice());
-                data.extend_from_slice(b.octets().as_slice());
-                data.extend_from_slice(c.octets().as_slice());
+            Self::IpAddr(a) => {
+                data.extend_from_slice(a.0.octets().as_slice());
+                data.extend_from_slice(a.1.octets().as_slice());
+                data.extend_from_slice(a.2.octets().as_slice());
             }
             // Self::FullIpSuite(_, _, _, _) => 16,
             Self::ManufacturerSpecific(val) => {
@@ -173,9 +261,8 @@ impl OptionAndSubValue {
                     data.extend_from_slice(option.to_u8_array().as_slice());
                 }
             }
-            Self::Response(a, b) => {
-                data.extend_from_slice(a.to_u8_array().as_ref());
-                data.push(*b as u8);
+            Self::Response(a) => {
+                a.append_data(data);
             }
         }
     }
@@ -185,22 +272,12 @@ impl OptionAndSubValue {
             OptionAndSub::IpAddr => {
                 let val = data.slice(0..=11)?;
                 let val = val.as_ref();
-                Self::IpAddr(
+                Self::IpAddr(IpAddr(
                     Ipv4Addr::new(val[0], val[1], val[2], val[3]),
                     Ipv4Addr::new(val[4], val[5], val[6], val[7]),
                     Ipv4Addr::new(val[8], val[9], val[10], val[11]),
-                )
+                ))
             }
-            // OptionAndSub::FullIpSuite => {
-            //     let val = data.slice(0..=15)?;
-            //     let val = val.as_ref();
-            //     Self::FullIpSuite(
-            //         Ipv4Addr::new(val[0], val[1], val[2], val[3]),
-            //         Ipv4Addr::new(val[4], val[5], val[6], val[7]),
-            //         Ipv4Addr::new(val[8], val[9], val[10], val[11]),
-            //         Ipv4Addr::new(val[12], val[13], val[14], val[15]),
-            //     )
-            // }
             OptionAndSub::ManufacturerSpecific => Self::ManufacturerSpecific(data),
             OptionAndSub::NameOfStation => Self::NameOfStation(data),
             OptionAndSub::DeviceId => {
@@ -224,11 +301,7 @@ impl OptionAndSubValue {
             }
             OptionAndSub::Response => {
                 let val = data.slice(0..=2)?;
-                let ref_u8 = val.as_ref();
-                Self::Response(
-                    OptionAndSub::try_from(val.clone())?,
-                    BlockError::try_from(ref_u8[2])?,
-                )
+                Self::Response(Response::try_from(val)?)
             }
             option => {
                 bail!("todo {:?} not support", option);
@@ -243,14 +316,14 @@ impl OptionAndSubValue {
     // }
     pub fn payload_size(&self) -> usize {
         match self {
-            Self::IpAddr(_, _, _) => 12,
+            Self::IpAddr(_) => 12,
             // Self::FullIpSuite(_, _, _, _) => 16,
             Self::ManufacturerSpecific(val) => val.len(),
             Self::NameOfStation(val) => val.len(),
             Self::DeviceId(_, _) => 4,
             Self::DeviceRole(_, _) => 2,
             Self::DeviceOptions(val) => val.len() * 2,
-            Self::Response(_, _) => 3,
+            Self::Response(_) => 3,
         }
     }
 }
@@ -339,6 +412,7 @@ impl OptionAndSub {
             Self::Other(a, b) => (a, b),
         }
     }
+    #[inline]
     pub fn to_u8_array(&self) -> [u8; 2] {
         match *self {
             Self::MarAddr => [1, 1],

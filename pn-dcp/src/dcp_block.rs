@@ -1,6 +1,8 @@
 use crate::comm::BytesWrap;
 use crate::options::ip::IpBlockInfo;
-use crate::options::{BlockError, BlockInfo, BlockQualifier, OptionAndSub, OptionAndSubValue};
+use crate::options::{
+    BlockError, BlockInfo, BlockQualifier, IpAddr, OptionAndSub, OptionAndSubValue,
+};
 use anyhow::{bail, Result};
 use bytes::Bytes;
 
@@ -39,42 +41,38 @@ impl BlockTrait for BlockOptionAndSub {
         data.push(b);
     }
 }
+
 #[derive(Debug, Eq, PartialEq)]
 pub struct BlockIp {
-    option: OptionAndSubValue,
-    info: IpBlockInfo,
+    pub(crate) ip: IpAddr,
+    pub(crate) info: IpBlockInfo,
 }
 impl BlockIp {
     pub fn try_from_bytes(value: BytesWrap) -> Result<Self> {
         let val = value.slice(2..)?;
         let len = Len::try_from(val.as_ref())?;
         let info = IpBlockInfo::try_from(value.slice(4..=5)?)?;
-        let val = value.slice(6..(len.0 + 4))?;
-        let option = OptionAndSubValue::init_by_ty(OptionAndSub::IpAddr, val)?;
-        Ok(Self { option, info })
+        let ip = IpAddr::new(value.slice(6..(len.0 + 4))?)?;
+        Ok(Self { ip, info })
     }
 }
 impl BlockTrait for BlockIp {
     fn len(&self) -> usize {
-        self.option.payload_size() + 6
+        self.ip.payload_size() + 6
     }
 
     fn append_data(&self, data: &mut Vec<u8>) {
-        if let OptionAndSubValue::IpAddr(a, b, c) = self.option {
-            self.option.append_option_to_data(data);
-            data.extend_from_slice(&14u16.to_be_bytes());
-            data.extend_from_slice(self.info.to_u8_array().as_slice());
-            self.option.append_value_to_data(data);
-        } else {
-            todo!()
-        }
+        data.extend_from_slice(OptionAndSub::IpAddr.to_u8_array().as_slice());
+        data.extend_from_slice(&14u16.to_be_bytes());
+        data.extend_from_slice(self.info.to_u8_array().as_slice());
+        self.ip.append_value_to_data(data);
     }
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct BlockSet {
-    option: OptionAndSubValue,
-    qualifier: BlockQualifier,
+    pub(crate) option: OptionAndSubValue,
+    pub(crate) qualifier: BlockQualifier,
 }
 impl TryFrom<BytesWrap> for BlockSet {
     type Error = anyhow::Error;
@@ -104,11 +102,20 @@ impl BlockTrait for BlockSet {
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct BlockCommon {
-    option: OptionAndSubValue,
-    info: BlockInfo,
+    pub(crate) option: OptionAndSubValue,
+    pub(crate) info: BlockInfo,
 }
 
 impl BlockCommon {
+    pub fn new(option: OptionAndSubValue) -> Self {
+        Self {
+            option,
+            info: BlockInfo::Reserved,
+        }
+    }
+    pub fn set_block_info(&mut self, info: BlockInfo) {
+        self.info = info;
+    }
     pub fn try_from_bytes(ty: OptionAndSub, value: BytesWrap) -> Result<Self> {
         let val = value.slice(2..)?;
         let len = Len::try_from(val.as_ref())?;
@@ -156,7 +163,7 @@ impl TryFrom<BytesWrap> for BlockResp {
 }
 
 #[derive(Debug, Eq, PartialEq)]
-pub struct BlockCommonWithoutInfo(pub OptionAndSubValue);
+pub struct BlockCommonWithoutInfo(pub(crate) OptionAndSubValue);
 
 impl From<OptionAndSubValue> for BlockCommonWithoutInfo {
     fn from(a: OptionAndSubValue) -> Self {

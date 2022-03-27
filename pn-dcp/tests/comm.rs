@@ -1,6 +1,9 @@
 #![allow(dead_code)]
 
 use anyhow::{anyhow, bail, Result};
+use pn_dcp::comm::BytesWrap;
+use pn_dcp::options::{OptionAndSub, OptionAndSubValue};
+use pnet::datalink::MacAddr;
 
 pub fn get_ident_req() -> Vec<u8> {
     vec![
@@ -133,9 +136,23 @@ pub fn get_blocks(data: &[u8]) -> Result<&[u8]> {
     }
 }
 
+pub fn init_mac_by_array(src: [u8; 6]) -> MacAddr {
+    MacAddr::new(src[0], src[1], src[2], src[3], src[4], src[5])
+}
 #[test]
 fn test() {
     let left = [0u8, 0u8, 1, 2, 3, 4, 5, 6];
     let right = vec![0u8, 1, 2, 3, 4, 5, 6];
     assert_eq!(get_destination_mac(right.as_slice()).unwrap(), &left[1..7]);
+}
+
+pub fn init_manufacturer() -> OptionAndSubValue {
+    let data = "S7-200 SMART".as_bytes().to_vec();
+    let manufacturer =
+        OptionAndSubValue::init_by_ty(OptionAndSub::ManufacturerSpecific, BytesWrap::from(data))?;
+    manufacturer
+}
+
+pub fn init() -> OptionAndSubValue {
+    OptionAndSubValue::
 }

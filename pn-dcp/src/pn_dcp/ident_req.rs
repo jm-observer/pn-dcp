@@ -102,7 +102,7 @@ impl PacketIdentReq {
             blocks: IdentReqBlocks::default(),
         }
     }
-    pub fn append_block(&mut self, block: impl Into<IdentReqBlock>) {
+    fn append_block(&mut self, block: impl Into<IdentReqBlock>) {
         let block = block.into();
         let block_len = block.len();
         self.blocks.0.push(block);
@@ -112,6 +112,10 @@ impl PacketIdentReq {
             self.head.add_payload_len(1);
         }
     }
+    pub fn append_block_by_option(&mut self, option: OptionAndSubValue) {
+        self.append_block(BlockCommonWithoutInfo(option));
+    }
+
     pub fn to_vec(&self) -> Vec<u8> {
         let mut data = Vec::with_capacity(self.head.payload_len + 26);
         self.head.append_data(&mut data);

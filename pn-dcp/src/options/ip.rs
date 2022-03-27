@@ -10,7 +10,7 @@
 // };
 
 use crate::comm::BytesWrap;
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Copy, Clone)]
 pub enum IpBlockInfo {
     IpNotSet,
     IpSet,
@@ -19,6 +19,12 @@ pub enum IpBlockInfo {
     IpSetConflict,
     IpSetByDhcpConflict,
     UnSupport([u8; 2]),
+}
+
+impl Default for IpBlockInfo {
+    fn default() -> Self {
+        Self::IpSet
+    }
 }
 
 impl IpBlockInfo {
