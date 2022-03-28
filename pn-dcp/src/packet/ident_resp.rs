@@ -9,7 +9,7 @@ use pn_dcg_macro::derefmut;
 use pnet::util::MacAddr;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum IdentRespBlock {
     Block(BlockCommon),
     BlockIp(BlockIp),
@@ -22,7 +22,7 @@ impl IdentRespBlock {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Default)]
+#[derive(Debug, Eq, PartialEq, Default, Clone)]
 #[derefmut(0)]
 pub struct IdentRespBlocks(Vec<IdentRespBlock>);
 impl IdentRespBlocks {
@@ -111,7 +111,7 @@ impl TryFrom<BytesWrap> for IdentRespBlocks {
         Ok(blocks.into())
     }
 }
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 #[derefmut(head)]
 pub struct PacketIdentResp {
     head: DcpHead,

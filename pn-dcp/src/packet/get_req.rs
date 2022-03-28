@@ -6,7 +6,7 @@ use anyhow::bail;
 use pn_dcg_macro::derefmut;
 use pnet::util::MacAddr;
 use std::ops::{Deref, DerefMut};
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 #[derefmut(head)]
 pub struct PacketGetReq {
     head: DcpHead,
@@ -55,7 +55,7 @@ impl TryFrom<&[u8]> for PacketGetReq {
     }
 }
 
-#[derive(Debug, Eq, PartialEq, Default)]
+#[derive(Debug, Eq, PartialEq, Default, Clone)]
 #[derefmut(0)]
 pub struct BlockGetReq(Vec<BlockOptionAndSub>);
 

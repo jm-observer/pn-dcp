@@ -7,13 +7,13 @@ use pn_dcg_macro::derefmut;
 use pnet::datalink::MacAddr;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 #[derefmut(head)]
 pub struct PacketSetResp {
     head: DcpHead,
     blocks: SetRespBlocks,
 }
-#[derive(Default, Debug, Eq, PartialEq)]
+#[derive(Default, Debug, Eq, PartialEq, Clone)]
 #[derefmut(0)]
 pub struct SetRespBlocks(pub(crate) Vec<SetRespBlock>);
 
@@ -56,7 +56,7 @@ impl BlockTrait for SetRespBlocks {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum SetRespBlock {
     Response(BlockResp),
     Padding(BlockPadding),

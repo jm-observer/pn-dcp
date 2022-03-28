@@ -7,7 +7,7 @@ use pn_dcg_macro::derefmut;
 use pnet::datalink::MacAddr;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 #[derefmut(head)]
 pub struct PacketSetReq {
     head: DcpHead,

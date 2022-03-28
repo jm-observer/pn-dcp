@@ -10,7 +10,7 @@ pub trait BlockTrait {
     fn payload(&self) -> u16;
     fn append_data(&self, data: &mut Vec<u8>);
 }
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct BlockPadding;
 
 impl BlockTrait for BlockPadding {
@@ -26,7 +26,7 @@ impl BlockTrait for BlockPadding {
         data.push(0u8);
     }
 }
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct BlockOptionAndSub(OptionAndSub);
 
 impl From<OptionAndSub> for BlockOptionAndSub {
@@ -50,7 +50,7 @@ impl BlockTrait for BlockOptionAndSub {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct BlockIp {
     pub(crate) ip: InnerIpAddr,
     pub(crate) info: IpBlockInfo,
@@ -81,7 +81,7 @@ impl BlockTrait for BlockIp {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct BlockSet {
     pub(crate) option: OptionAndSubValue,
     pub(crate) qualifier: BlockQualifier,
@@ -116,7 +116,7 @@ impl BlockTrait for BlockSet {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct BlockCommon {
     pub(crate) option: OptionAndSubValue,
     pub(crate) info: BlockInfo,
@@ -161,7 +161,7 @@ impl BlockTrait for BlockCommon {
         self.option.append_value_to_data(data);
     }
 }
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct BlockResp(pub OptionAndSub, pub BlockError);
 impl BlockTrait for BlockResp {
     fn len(&self) -> usize {
@@ -189,7 +189,7 @@ impl TryFrom<BytesWrap> for BlockResp {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct BlockCommonWithoutInfo(pub(crate) OptionAndSubValue);
 
 impl From<OptionAndSubValue> for BlockCommonWithoutInfo {

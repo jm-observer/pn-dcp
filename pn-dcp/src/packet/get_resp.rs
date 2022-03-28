@@ -8,7 +8,7 @@ use pn_dcg_macro::derefmut;
 use pnet::util::MacAddr;
 use std::ops::{Deref, DerefMut};
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 #[derefmut(head)]
 pub struct PacketGetResp {
     head: DcpHead,
@@ -84,14 +84,14 @@ impl TryFrom<&[u8]> for PacketGetResp {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum GetRespBlock {
     Block(BlockCommon),
     BlockIp(BlockIp),
     BlockResp(BlockResp),
     Padding(BlockPadding),
 }
-#[derive(Debug, Eq, PartialEq, Default)]
+#[derive(Debug, Eq, PartialEq, Default, Clone)]
 #[derefmut(0)]
 pub struct GetRespBlocks(pub(crate) Vec<GetRespBlock>);
 

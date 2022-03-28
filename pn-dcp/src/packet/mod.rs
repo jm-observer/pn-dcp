@@ -74,7 +74,7 @@ impl TryFrom<&[u8]> for PnDcp {
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
         let head = DcpHead::try_from(value)?;
-        if let Some(blocks_data) = value.get(26..) {
+        if let Some(blocks_data) = value.get(26..(26 + head.payload_len)) {
             let blocks: BytesWrap = blocks_data.to_vec().into();
             return Ok(Self { head, blocks });
         }
@@ -82,7 +82,7 @@ impl TryFrom<&[u8]> for PnDcp {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct DcpHead {
     pub destination: MacAddr,
     pub source: MacAddr,

@@ -9,7 +9,7 @@ use std::net::Ipv4Addr;
 // /*0x0001 - 0xffff reserved */
 // { 0, NULL }
 // };
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum BlockInfo {
     Reserved,
     UnSupport([u8; 2]),
@@ -39,7 +39,7 @@ impl TryFrom<BytesWrap> for BlockInfo {
 const RESERVED: [u8; 2] = [0x00, 0x00];
 const USE_TEMPORARY: [u8; 2] = [0x00, 0x00];
 const SAVE_PERMANENT: [u8; 2] = [0x00, 0x01];
-#[derive(Eq, PartialEq)]
+#[derive(Eq, PartialEq, Clone)]
 pub enum BlockQualifier {
     UseTemporary,
     SavePermanent,
@@ -82,7 +82,7 @@ impl TryFrom<BytesWrap> for BlockQualifier {
         })
     }
 }
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct InnerIpAddr(pub Ipv4Addr, pub Ipv4Addr, pub Ipv4Addr);
 impl InnerIpAddr {
     pub fn new(data: BytesWrap) -> Result<Self> {
@@ -114,7 +114,7 @@ impl InnerIpAddr {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub struct Response(pub OptionAndSub, pub BlockError);
 impl Response {
     pub fn len(&self) -> usize {
@@ -157,7 +157,7 @@ impl DeviceOptionsBuilder {
     }
 }
 
-#[derive(Debug, Eq, PartialEq)]
+#[derive(Debug, Eq, PartialEq, Clone)]
 pub enum OptionAndSubValue {
     // MarAddr([u8; 6]),
     IpAddr(InnerIpAddr),
