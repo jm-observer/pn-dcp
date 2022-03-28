@@ -132,6 +132,16 @@ impl PacketIdentReq {
         self.append_block(BlockCommonWithoutInfo(option));
     }
 
+    pub fn options(&self) -> Vec<OptionAndSubValue> {
+        let mut options = Vec::new();
+        for option in self.blocks.iter() {
+            if let IdentReqBlock::Block(BlockCommonWithoutInfo(option)) = option {
+                options.push(option.clone());
+            }
+        }
+        options
+    }
+
     pub fn to_vec(&self) -> Vec<u8> {
         let mut data = Vec::with_capacity(self.head.payload_len + 26);
         self.head.append_data(&mut data);

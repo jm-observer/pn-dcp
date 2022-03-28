@@ -16,7 +16,6 @@ pub enum IdentRespBlock {
     Padding(BlockPadding),
 }
 
-
 impl IdentRespBlock {
     pub fn add_to_packet(self, packet: &mut PacketIdentResp) {
         packet.append_block(self);
@@ -130,8 +129,6 @@ impl Deref for PacketIdentResp {
     }
 }
 
-
-
 impl PacketIdentResp {
     pub fn new(source: MacAddr, dest: MacAddr) -> Self {
         let head = DcpHead::new(dest, source, PnDcpTy::IdentRespSuc);
@@ -177,13 +174,22 @@ impl PacketIdentResp {
         data
     }
 
-    pub fn get_block_ip(&self) -> Result<&BlockIp>{
+    pub fn block_ip(&self) -> Result<BlockIp> {
         for block in self.blocks.iter() {
             if let IdentRespBlock::BlockIp(ip) = block {
-                return Ok(ip);
+                return Ok(ip.clone());
             }
         }
         bail!("not contain ip info!");
+    }
+    pub fn block_commons(&self) -> Vec<BlockCommon> {
+        let mut blocks = Vec::new();
+        for block in self.blocks.iter() {
+            if let IdentRespBlock::Block(common) = block {
+                blocks.push(common.clone());
+            }
+        }
+        blocks
     }
 }
 
@@ -194,7 +200,6 @@ impl TryFrom<PnDcp> for PacketIdentResp {
         let PnDcp { head, blocks } = dcg;
         if head.ty != PnDcpTy::IdentRespSuc {
             bail!("the packet is pn-dcp, but not ident resp success!");
-
         }
         let blocks = IdentRespBlocks::try_from(blocks)?;
         Ok(Self { blocks, head })

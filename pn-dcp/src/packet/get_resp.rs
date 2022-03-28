@@ -23,17 +23,6 @@ impl Deref for PacketGetResp {
 }
 
 impl PacketGetResp {
-    // pub fn new(get_req: &PacketGetReq) -> Self {
-    //     let head = DcgHead::new(
-    //         get_req.source.clone(),
-    //         get_req.destination.clone(),
-    //         PnDcpTy::GetRespSuc,
-    //     );
-    //     Self {
-    //         head,
-    //         blocks: GetRespBlocks::default(),
-    //     }
-    // }
     pub fn new(source: MacAddr, dest: MacAddr) -> Self {
         let head = DcpHead::new(dest, source, PnDcpTy::GetRespSuc);
         Self {
@@ -60,6 +49,32 @@ impl PacketGetResp {
     }
     pub fn append_block_resp(&mut self, option: OptionAndSub, error: BlockError) {
         self.append_block(BlockResp(option, error))
+    }
+    pub fn block_ip(&self) -> Result<BlockIp> {
+        for block in self.blocks.iter() {
+            if let GetRespBlock::BlockIp(ip) = block {
+                return Ok(ip.clone());
+            }
+        }
+        bail!("not contain ip info!");
+    }
+    pub fn block_commons(&self) -> Vec<BlockCommon> {
+        let mut blocks = Vec::new();
+        for block in self.blocks.iter() {
+            if let GetRespBlock::Block(common) = block {
+                blocks.push(common.clone());
+            }
+        }
+        blocks
+    }
+    pub fn block_resps(&self) -> Vec<BlockResp> {
+        let mut blocks = Vec::new();
+        for block in self.blocks.iter() {
+            if let GetRespBlock::BlockResp(common) = block {
+                blocks.push(common.clone());
+            }
+        }
+        blocks
     }
 
     pub fn to_vec(&self) -> Vec<u8> {

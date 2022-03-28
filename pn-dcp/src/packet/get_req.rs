@@ -33,6 +33,14 @@ impl PacketGetReq {
         self.blocks.push(option.into());
         self.head.add_payload_len(2);
     }
+    pub fn options(&self) -> Vec<OptionAndSub> {
+        let mut options = Vec::new();
+        let BlockGetReq(datas) = &self.blocks;
+        for block in datas.iter() {
+            options.push(block.0.clone());
+        }
+        options
+    }
     pub fn to_vec(&self) -> Vec<u8> {
         let mut data = Vec::with_capacity(self.head.payload_len + 26);
         self.head.append_data(&mut data);

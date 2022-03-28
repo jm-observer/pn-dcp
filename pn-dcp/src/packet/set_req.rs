@@ -33,6 +33,10 @@ impl PacketSetReq {
         Self { head, blocks }
     }
 
+    pub fn blocks(&self) -> BlockSet {
+        self.blocks.clone()
+    }
+
     pub fn to_vec(&self) -> Vec<u8> {
         let mut data = Vec::with_capacity(self.head.payload_len + 26);
         self.head.append_data(&mut data);

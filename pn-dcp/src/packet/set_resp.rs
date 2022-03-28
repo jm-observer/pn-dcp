@@ -116,6 +116,16 @@ impl PacketSetResp {
         }
     }
 
+    pub fn blocks(&self) -> Vec<BlockResp> {
+        let mut blocks = Vec::new();
+        for block in self.blocks.iter() {
+            if let SetRespBlock::Response(common) = block {
+                blocks.push(common.clone());
+            }
+        }
+        blocks
+    }
+
     pub fn to_vec(&self) -> Vec<u8> {
         let mut data = Vec::with_capacity(self.head.payload_len + 26);
         self.head.append_data(&mut data);

@@ -2,6 +2,7 @@ mod comm;
 
 use anyhow::Result;
 use comm::*;
+use pn_dcp::block::{BlockResp, BlockSet};
 use pn_dcp::options::{BlockError, BlockQualifier, InnerIpAddr, OptionAndSub};
 use pn_dcp::packet::set_req::PacketSetReq;
 use pn_dcp::packet::set_resp::PacketSetResp;
@@ -23,16 +24,18 @@ fn test_req() -> Result<()> {
     let mut get_req = PacketSetReq::new(
         init_mac_by_array(src),
         init_mac_by_array(dest),
-        ip.to_option(),
+        ip.clone().to_option(),
         BlockQualifier::SavePermanent,
     );
     get_req.set_xid(get_xid(data.as_slice()).unwrap());
 
-    // tx_data(data).unwrap();
-    // tx_data(get_req.to_vec()).unwrap();
+    assert_eq!(
+        get_req.blocks(),
+        BlockSet::new(ip.to_option(), BlockQualifier::SavePermanent)
+    );
+
     assert_eq!(data, get_req.to_vec());
     assert_eq!(set, get_req);
-    // Ok(())
     Ok(())
 }
 
@@ -51,10 +54,26 @@ fn test_resp() -> Result<()> {
         BlockError::Ok,
     );
     get_req.set_xid(get_xid(data.as_slice()).unwrap());
-    // tx_data(data).unwrap();
-    // tx_data(get_req.to_vec()).unwrap();
+
+    assert_eq!(
+        get_req.blocks(),
+        vec![BlockResp(OptionAndSub::IpAddr, BlockError::Ok)]
+    );
 
     assert_eq!(data, get_req.to_vec());
     assert_eq!(set, get_req);
+    Ok(())
+}
+
+#[test]
+fn test_get_ext() -> Result<()> {
+    let req = PacketSetReq::try_from(get_set_req().as_slice())?;
+    let req_ext = PacketSetReq::try_from(get_set_req_ext().as_slice())?;
+    assert_eq!(req, req_ext);
+
+    let resp = PacketSetResp::try_from(get_set_resp().as_slice())?;
+    let resp_ext = PacketSetResp::try_from(get_set_resp_ext().as_slice())?;
+    assert_eq!(resp, resp_ext);
+
     Ok(())
 }

@@ -27,7 +27,7 @@ impl BlockTrait for BlockPadding {
     }
 }
 #[derive(Debug, Eq, PartialEq, Clone)]
-pub struct BlockOptionAndSub(OptionAndSub);
+pub struct BlockOptionAndSub(pub(crate) OptionAndSub);
 
 impl From<OptionAndSub> for BlockOptionAndSub {
     fn from(a: OptionAndSub) -> Self {
@@ -56,6 +56,9 @@ pub struct BlockIp {
     pub(crate) info: IpBlockInfo,
 }
 impl BlockIp {
+    pub fn new(ip: InnerIpAddr, info: IpBlockInfo) -> Self {
+        Self { ip, info }
+    }
     pub fn ip(&self) -> &InnerIpAddr {
         &self.ip
     }
@@ -92,6 +95,19 @@ pub struct BlockSet {
     pub(crate) option: OptionAndSubValue,
     pub(crate) qualifier: BlockQualifier,
 }
+
+impl BlockSet {
+    pub fn new(option: OptionAndSubValue, qualifier: BlockQualifier) -> Self {
+        Self { option, qualifier }
+    }
+    pub fn option(&self) -> &OptionAndSubValue {
+        &self.option
+    }
+    pub fn qualifier(&self) -> &BlockQualifier {
+        &self.qualifier
+    }
+}
+
 impl TryFrom<BytesWrap> for BlockSet {
     type Error = anyhow::Error;
     fn try_from(value: BytesWrap) -> Result<Self, Self::Error> {
@@ -129,6 +145,12 @@ pub struct BlockCommon {
 }
 
 impl BlockCommon {
+    pub fn option(&self) -> &OptionAndSubValue {
+        &self.option
+    }
+    pub fn info(&self) -> &BlockInfo {
+        &self.info
+    }
     pub fn new(option: OptionAndSubValue) -> Self {
         Self {
             option,
