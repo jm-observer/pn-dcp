@@ -3,7 +3,7 @@ use crate::comm::BytesWrap;
 use crate::options::{BlockError, OptionAndSub};
 use crate::packet::{DcpHead, PnDcp, PnDcpTy};
 use anyhow::bail;
-use pn_dcg_macro::derefmut;
+use pn_dcp_macro::derefmut;
 use pnet::datalink::MacAddr;
 use std::ops::{Deref, DerefMut};
 
@@ -12,6 +12,13 @@ use std::ops::{Deref, DerefMut};
 pub struct PacketSetResp {
     head: DcpHead,
     blocks: SetRespBlocks,
+}
+impl Deref for PacketSetResp {
+    type Target = DcpHead;
+
+    fn deref(&self) -> &Self::Target {
+        &self.head
+    }
 }
 #[derive(Default, Debug, Eq, PartialEq, Clone)]
 #[derefmut(0)]
@@ -23,6 +30,9 @@ impl TryFrom<BytesWrap> for SetRespBlocks {
         let mut index = 0usize;
         let mut blocks = Vec::<SetRespBlock>::new();
         while let Ok(tmp) = value.slice(index..) {
+            if tmp.len() == 0 {
+                break;
+            }
             let option = BlockResp::try_from(tmp.clone())?;
             let len = option.len();
             blocks.push(option.into());
@@ -120,7 +130,7 @@ impl TryFrom<PnDcp> for PacketSetResp {
     fn try_from(dcg: PnDcp) -> Result<Self, Self::Error> {
         let PnDcp { head, blocks } = dcg;
         if head.ty != PnDcpTy::SetRespSuc {
-            bail!("todo");
+            bail!("the packet is pn-dcp, but not set resp success!");
         }
         let blocks = SetRespBlocks::try_from(blocks)?;
         Ok(Self { blocks, head })

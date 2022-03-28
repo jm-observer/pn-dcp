@@ -3,7 +3,7 @@ use crate::comm::BytesWrap;
 use crate::options::OptionAndSubValue;
 use crate::packet::{DcpHead, PnDcp, PnDcpTy};
 use anyhow::{bail, Result};
-use pn_dcg_macro::derefmut;
+use pn_dcp_macro::derefmut;
 use pnet::util::MacAddr;
 use std::ops::{Deref, DerefMut};
 
@@ -78,6 +78,9 @@ impl TryFrom<BytesWrap> for IdentReqBlocks {
         let mut index = 0usize;
         let mut blocks = Vec::<IdentReqBlock>::new();
         while let Ok(tmp) = value.slice(index..) {
+            if tmp.len() == 0 {
+                break;
+            }
             let one = BlockCommonWithoutInfo::try_from(tmp)?;
             let len = one.len();
             if one.len() % 2 == 1 {
@@ -99,7 +102,13 @@ pub struct PacketIdentReq {
     head: DcpHead,
     blocks: IdentReqBlocks,
 }
+impl Deref for PacketIdentReq {
+    type Target = DcpHead;
 
+    fn deref(&self) -> &Self::Target {
+        &self.head
+    }
+}
 impl PacketIdentReq {
     pub fn new(source: MacAddr) -> Self {
         let destination = MacAddr::new(0x01, 0x0e, 0xcf, 0x00, 0x00, 0x00);
@@ -137,7 +146,7 @@ impl TryFrom<PnDcp> for PacketIdentReq {
     fn try_from(dcg: PnDcp) -> Result<Self, Self::Error> {
         let PnDcp { head, blocks } = dcg;
         if head.ty != PnDcpTy::IdentReq {
-            bail!("todo");
+            bail!("the packet is pn-dcp, but not ident req!");
         }
         let blocks = IdentReqBlocks::try_from(blocks)?;
         Ok(Self { blocks, head })

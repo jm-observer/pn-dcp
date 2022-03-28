@@ -174,10 +174,10 @@ pub enum OptionAndSubValue {
     Response(Response), // not support yet
                         // ResetFactory,
                         // DevicecInitiative,
-                        // All,
+                        All,
                         // DHCP(u8),
                         // LLDP(u8),
-                        // Other((u8, u8)),
+                        Other(OptionAndSub, BytesWrap),
 }
 
 impl OptionAndSubValue {
@@ -204,6 +204,12 @@ impl OptionAndSubValue {
             }
             Self::Response(_) => {
                 data.extend_from_slice(OptionAndSub::Response.to_u8_array().as_slice())
+            }
+            Self::All => {
+                data.extend_from_slice(OptionAndSub::All.to_u8_array().as_slice())
+            }
+            Self::Other(a, _) => {
+                data.extend_from_slice(a.to_u8_array().as_slice())
             }
         }
     }
@@ -237,6 +243,11 @@ impl OptionAndSubValue {
             Self::Response(a) => {
                 a.append_value_to_data(data);
             }
+            Self::All => {
+            }
+            Self::Other(_, a) => {
+                data.extend_from_slice(a.as_ref())
+            }
         }
     }
     // data的长度校验，应该等于求出来的值
@@ -267,6 +278,9 @@ impl OptionAndSubValue {
                 let mut index = 0;
                 let mut options = Vec::new();
                 while let Ok(val) = data.slice(index..) {
+                    if val.len() == 0 {
+                        break;
+                    }
                     options.push(OptionAndSub::try_from(val)?);
                     index += 2;
                 }
@@ -276,8 +290,11 @@ impl OptionAndSubValue {
                 let val = data.slice(0..=2)?;
                 Self::Response(Response::try_from(val)?)
             }
+            OptionAndSub::All => {
+                Self::All
+            }
             option => {
-                bail!("todo {:?} not support", option);
+                Self::Other(option, data)
             }
         })
     }
@@ -291,6 +308,8 @@ impl OptionAndSubValue {
             Self::DeviceRole(_, _) => 2,
             Self::DeviceOptions(val) => val.len() * 2,
             Self::Response(_) => 3,
+            Self::All => 0,
+            Self::Other(_, a) => a.len(),
         }
     }
 
@@ -332,7 +351,7 @@ impl TryFrom<BytesWrap> for OptionAndSub {
         if let Some(a) = value.as_ref().get(0..=1) {
             OptionAndSub::new(a[0], a[1])
         } else {
-            bail!("todo")
+            bail!("todo: {:?}", value);
         }
     }
 }
@@ -360,7 +379,6 @@ impl OptionAndSub {
             (3, a) => Self::DHCP(a),
             (4, a) => Self::LLDP(a),
             (a, b) => Self::Other(a, b),
-            // _ => bail!("todo"),
         })
     }
     pub fn to_u8s(&self) -> (u8, u8) {
@@ -435,7 +453,7 @@ impl TryFrom<u8> for BlockError {
             0x04 => Self::ResourceError,
             0x05 => Self::SETNotPossibleByLocalReasons,
             0x06 => Self::InOoperationSETNotPossible,
-            _ => bail!("todo"),
+            a => bail!("unsupport block error: {}", a),
         })
     }
 }

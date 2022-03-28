@@ -60,7 +60,7 @@ impl TryFrom<[u8; 4]> for PnDcpTy {
             [0xfe, 0xfd, 0x04, 0x00] => Ok(Self::SetReq),
             [0xfe, 0xfd, 0x04, 0x01] => Ok(Self::SetRespSuc),
             [0xfe, 0xfd, 0x04, 0x05] => Ok(Self::SetRespUnsup),
-            _ => bail!("todo"),
+            _ => bail!("not a pn-dcp type!"),
         }
     }
 }
@@ -135,7 +135,8 @@ impl TryFrom<&[u8]> for DcpHead {
             .and_then(|x| Some(u16::from_be_bytes([value[24], *x]) as usize))
         {
             if PROFINET_ETHER_TYPE.0 != u16::from_be_bytes([value[12], value[13]]) {
-                bail!("todo");
+                bail!("the packet is not a pn-dcp!");
+
             }
             let ty = PnDcpTy::try_from([value[14], value[15], value[16], value[17]])?;
             if payload_len + 26 > value.len() {

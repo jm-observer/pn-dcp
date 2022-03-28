@@ -5,7 +5,7 @@ use crate::options::{BlockInfo, InnerIpAddr, OptionAndSub, OptionAndSubValue};
 use crate::packet::ident_req::PacketIdentReq;
 use crate::packet::{DcpHead, PnDcp, PnDcpTy};
 use anyhow::{bail, Result};
-use pn_dcg_macro::derefmut;
+use pn_dcp_macro::derefmut;
 use pnet::util::MacAddr;
 use std::ops::{Deref, DerefMut};
 
@@ -15,6 +15,7 @@ pub enum IdentRespBlock {
     BlockIp(BlockIp),
     Padding(BlockPadding),
 }
+
 
 impl IdentRespBlock {
     pub fn add_to_packet(self, packet: &mut PacketIdentResp) {
@@ -84,6 +85,9 @@ impl TryFrom<BytesWrap> for IdentRespBlocks {
         let mut index = 0usize;
         let mut blocks = Vec::<IdentRespBlock>::new();
         while let Ok(tmp) = value.slice(index..) {
+            if tmp.len() == 0 {
+                break;
+            }
             let option = OptionAndSub::try_from(tmp.clone())?;
             let len = match option {
                 OptionAndSub::IpAddr => {
@@ -117,6 +121,16 @@ pub struct PacketIdentResp {
     head: DcpHead,
     blocks: IdentRespBlocks,
 }
+
+impl Deref for PacketIdentResp {
+    type Target = DcpHead;
+
+    fn deref(&self) -> &Self::Target {
+        &self.head
+    }
+}
+
+
 
 impl PacketIdentResp {
     pub fn new(source: MacAddr, dest: MacAddr) -> Self {
@@ -162,6 +176,15 @@ impl PacketIdentResp {
         self.blocks.append_data(&mut data);
         data
     }
+
+    pub fn get_block_ip(&self) -> Result<&BlockIp>{
+        for block in self.blocks.iter() {
+            if let IdentRespBlock::BlockIp(ip) = block {
+                return Ok(ip);
+            }
+        }
+        bail!("not contain ip info!");
+    }
 }
 
 impl TryFrom<PnDcp> for PacketIdentResp {
@@ -170,7 +193,8 @@ impl TryFrom<PnDcp> for PacketIdentResp {
     fn try_from(dcg: PnDcp) -> Result<Self, Self::Error> {
         let PnDcp { head, blocks } = dcg;
         if head.ty != PnDcpTy::IdentRespSuc {
-            bail!("todo");
+            bail!("the packet is pn-dcp, but not ident resp success!");
+
         }
         let blocks = IdentRespBlocks::try_from(blocks)?;
         Ok(Self { blocks, head })

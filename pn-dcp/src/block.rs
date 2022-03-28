@@ -56,6 +56,12 @@ pub struct BlockIp {
     pub(crate) info: IpBlockInfo,
 }
 impl BlockIp {
+    pub fn ip(&self) -> &InnerIpAddr {
+        &self.ip
+    }
+    pub fn info(&self) -> &IpBlockInfo {
+        &self.info
+    }
     pub fn try_from_bytes(value: BytesWrap) -> Result<Self> {
         let val = value.slice(2..)?;
         let len = Len::try_from(val.as_ref())?;

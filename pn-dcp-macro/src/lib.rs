@@ -5,7 +5,19 @@ use syn::__private::TokenStream2;
 use syn::parse::Parser;
 use syn::{ItemStruct, Lit, Meta, NestedMeta, Type};
 
-fn impl_derefmut(attr_ty: AttrTy, ty: Type, name: Ident, item: ItemStruct) -> TokenStream {
+fn impl_derefmut(attr_ty: AttrTy, name: Ident, item: ItemStruct) -> TokenStream {
+    let gen = quote! {
+        #item
+        impl DerefMut for #name {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+                &mut self.#attr_ty
+            }
+        }
+    };
+    gen.into()
+}
+
+fn impl_deref(attr_ty: AttrTy, ty: Type, name: Ident, item: ItemStruct) -> TokenStream {
     let gen = quote! {
         #item
         impl Deref for #name {
@@ -30,7 +42,15 @@ pub fn derefmut(attr: TokenStream, item: TokenStream) -> TokenStream {
     let attr_ty = resolve_attr(attr.into());
     let item: ItemStruct = syn::parse(item).unwrap();
     let ty = get_field_ty(&item, attr_ty.clone());
-    impl_derefmut(attr_ty, ty, item.ident.clone(), item)
+    match &attr_ty {
+        AttrTy::Ident(_) => {
+            impl_derefmut(attr_ty, item.ident.clone(), item)
+        }
+        AttrTy::Index(_) => {
+            impl_deref(attr_ty, ty, item.ident.clone(), item)
+        }
+    }
+
 }
 
 fn get_field_ty(a: &ItemStruct, right: AttrTy) -> Type {

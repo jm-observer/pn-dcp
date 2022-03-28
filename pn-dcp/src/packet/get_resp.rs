@@ -4,7 +4,7 @@ use crate::options::IpBlockInfo;
 use crate::options::{BlockError, BlockInfo, InnerIpAddr, OptionAndSub, OptionAndSubValue};
 use crate::packet::{DcpHead, PnDcp, PnDcpTy};
 use anyhow::{bail, Result};
-use pn_dcg_macro::derefmut;
+use pn_dcp_macro::derefmut;
 use pnet::util::MacAddr;
 use std::ops::{Deref, DerefMut};
 
@@ -13,6 +13,13 @@ use std::ops::{Deref, DerefMut};
 pub struct PacketGetResp {
     head: DcpHead,
     blocks: GetRespBlocks,
+}
+impl Deref for PacketGetResp {
+    type Target = DcpHead;
+
+    fn deref(&self) -> &Self::Target {
+        &self.head
+    }
 }
 
 impl PacketGetResp {
@@ -68,7 +75,7 @@ impl TryFrom<PnDcp> for PacketGetResp {
     fn try_from(dcg: PnDcp) -> Result<Self, Self::Error> {
         let PnDcp { head, blocks } = dcg;
         if head.ty != PnDcpTy::GetRespSuc {
-            bail!("todo");
+            bail!("the packet is pn-dcp, but not get resp success!");
         }
         let blocks = GetRespBlocks::try_from(blocks)?;
         Ok(Self { blocks, head })
@@ -150,6 +157,9 @@ impl TryFrom<BytesWrap> for GetRespBlocks {
         let mut index = 0usize;
         let mut blocks = Vec::<GetRespBlock>::new();
         while let Ok(tmp) = value.slice(index..) {
+            if tmp.len() == 0 {
+                break;
+            }
             let option = OptionAndSub::try_from(tmp.clone())?;
             let len = match option {
                 OptionAndSub::IpAddr => {

@@ -1,2 +1,2 @@
 [workspace]
-members = ["pn-dcg-macro", "pn-dcp"]
+members = ["pn-dcp-macro", "pn-dcp"]

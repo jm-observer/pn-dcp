@@ -3,7 +3,7 @@ use crate::comm::BytesWrap;
 use crate::options::{BlockQualifier, OptionAndSubValue};
 use crate::packet::{DcpHead, PnDcp, PnDcpTy};
 use anyhow::bail;
-use pn_dcg_macro::derefmut;
+use pn_dcp_macro::derefmut;
 use pnet::datalink::MacAddr;
 use std::ops::{Deref, DerefMut};
 
@@ -13,7 +13,13 @@ pub struct PacketSetReq {
     head: DcpHead,
     blocks: BlockSet,
 }
+impl Deref for PacketSetReq {
+    type Target = DcpHead;
 
+    fn deref(&self) -> &Self::Target {
+        &self.head
+    }
+}
 impl PacketSetReq {
     pub fn new(
         source: MacAddr,
@@ -41,7 +47,7 @@ impl TryFrom<PnDcp> for PacketSetReq {
     fn try_from(dcg: PnDcp) -> Result<Self, Self::Error> {
         let PnDcp { head, blocks } = dcg;
         if head.ty != PnDcpTy::SetReq {
-            bail!("todo");
+            bail!("the packet is pn-dcp, but not  set req!");
         }
         let blocks = BlockSet::try_from(blocks)?;
         Ok(Self { blocks, head })
@@ -95,6 +101,9 @@ impl TryFrom<BytesWrap> for SetReqBlocks {
         let mut index = 0usize;
         let mut blocks = Vec::<SetReqBlock>::new();
         while let Ok(tmp) = value.slice(index..) {
+            if tmp.len() == 0 {
+                break;
+            }
             let block = BlockSet::try_from(tmp)?;
             let len = block.len();
             blocks.push(block.into());

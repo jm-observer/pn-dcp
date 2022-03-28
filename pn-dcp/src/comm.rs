@@ -63,7 +63,7 @@ impl BytesWrap {
             Bound::Excluded(&n) => n,
             Bound::Unbounded => len,
         };
-        if begin >= end {
+        if begin > end {
             bail!(
                 "range start must not be greater than end: {:?} <= {:?}",
                 begin,

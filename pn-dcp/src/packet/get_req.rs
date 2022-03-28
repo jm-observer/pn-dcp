@@ -3,7 +3,7 @@ use crate::comm::BytesWrap;
 use crate::options::OptionAndSub;
 use crate::packet::{DcpHead, PnDcp, PnDcpTy};
 use anyhow::bail;
-use pn_dcg_macro::derefmut;
+use pn_dcp_macro::derefmut;
 use pnet::util::MacAddr;
 use std::ops::{Deref, DerefMut};
 #[derive(Debug, Eq, PartialEq, Clone)]
@@ -11,6 +11,14 @@ use std::ops::{Deref, DerefMut};
 pub struct PacketGetReq {
     head: DcpHead,
     blocks: BlockGetReq,
+}
+
+impl Deref for PacketGetReq {
+    type Target = DcpHead;
+
+    fn deref(&self) -> &Self::Target {
+        &self.head
+    }
 }
 
 impl PacketGetReq {
@@ -39,7 +47,7 @@ impl TryFrom<PnDcp> for PacketGetReq {
     fn try_from(dcg: PnDcp) -> Result<Self, Self::Error> {
         let PnDcp { head, blocks } = dcg;
         if head.ty != PnDcpTy::GetReq {
-            bail!("todo");
+            bail!("the packet is pn-dcp, but not get req!");
         }
         let blocks = BlockGetReq::try_from(blocks)?;
         Ok(Self { blocks, head })
@@ -91,6 +99,9 @@ impl TryFrom<BytesWrap> for BlockGetReq {
         let mut index = 0usize;
         let mut blocks = Vec::<BlockOptionAndSub>::new();
         while let Ok(tmp) = value.slice(index..) {
+            if tmp.len() == 0 {
+                break;
+            }
             let one = OptionAndSub::try_from(tmp)?;
             blocks.push(one.into());
             index += 2;
