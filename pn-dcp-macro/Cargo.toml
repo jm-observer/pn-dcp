@@ -3,9 +3,10 @@ name = "pn-dcp-macro"
 version = "0.1.0"
 edition = "2021"
 description = "Aim to quickly parsing and splicing pn-dcp packet"
-license = "Apache-2.0"
 repository = "https://github.com/fengqi2019/pn-dcp"
-readme = "README.md"
+
+license-file = "../LICENSE"
+readme = "../README.md"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 [lib]
