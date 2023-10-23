@@ -1,2 +1,3 @@
 [workspace]
 members = ["pn-dcp-macro", "pn-dcp"]
+resolver = "2"
