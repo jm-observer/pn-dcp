@@ -19,4 +19,4 @@ pnet =  {version = "0.34.0", features = ["std"]}
 anyhow = "1.0.51"
 bytes = "1.1.0"
 #pn-dcp-macro = {path = "../pn-dcp-macro" }
-pn-dcp-macro = "0.1.0"
+pn-dcp-macro = "0.3.0"
