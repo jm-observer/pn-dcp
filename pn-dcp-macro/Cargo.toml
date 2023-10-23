@@ -1,6 +1,6 @@
 [package]
 name = "pn-dcp-macro"
-version = "0.1.0"
+version = "0.3.0"
 edition = "2021"
 description = "Aim to quickly parsing and splicing pn-dcp packet"
 repository = "https://github.com/fengqi2019/pn-dcp"

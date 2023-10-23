@@ -1,6 +1,6 @@
 [package]
 name = "pn-dcp"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 description = "Aim to quickly parsing and splicing pn-dcp packet"
 repository = "https://github.com/fengqi2019/pn-dcp"
@@ -11,7 +11,7 @@ readme = "../README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-pnet =  {version ="0.31.0", features = ["std"]}
+pnet =  {version = "0.34.0", features = ["std"]}
 #
 #pnet = "0.29.0"
 #pnet_macros = "0.31.0"
@@ -20,9 +20,3 @@ anyhow = "1.0.51"
 bytes = "1.1.0"
 #pn-dcp-macro = {path = "../pn-dcp-macro" }
 pn-dcp-macro = "0.1.0"
-
-[dev-dependencies]
-anyhow = "1.0.51"
-pnet = "0.31.0"
-#pnet_macros = "0.31.0"
-#pnet_macros_support = "0.31.0"
